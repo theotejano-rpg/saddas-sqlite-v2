@@ -293,6 +293,14 @@ body.student-page a { text-decoration: none !important; }
       <span class="tooltip">Reservation</span>
     </a>
 
+    <!-- Testimonials Tab (NEW) -->
+    <a href="Testimonials.php" class="sn-icon-btn <?= $nav_student_active === 'testimonials' ? 'active' : '' ?>">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+      <span class="tooltip">Testimonials</span>
+    </a>
+
     <div class="sn-divider"></div>
 
     <a href="Logout.php" class="nav-btn solid logout-btn">
@@ -325,20 +333,17 @@ body.student-page a { text-decoration: none !important; }
     fetch(window.location.pathname + '?mark_notif_seen=1');
   }
 
-  // Hover keeps dropdown open
   wrapper.addEventListener('mouseenter', () => dropdown.classList.add('open'));
   wrapper.addEventListener('mouseleave', () => {
     setTimeout(() => { if (!wrapper.matches(':hover')) dropdown.classList.remove('open'); }, 150);
   });
 
-  // Click bell: mark read + go to Notification page
   bell.addEventListener('click', function (e) {
     e.preventDefault();
     markRead();
     setTimeout(() => { window.location.href = 'Notification.php'; }, 100);
   });
 
-  // Click "Mark read" button: just hide the dot, stay on page
   if (markBtn) {
     markBtn.addEventListener('click', function (e) {
       e.stopPropagation();
@@ -346,7 +351,6 @@ body.student-page a { text-decoration: none !important; }
     });
   }
 
-  // Close on outside click
   document.addEventListener('click', function (e) {
     if (!wrapper.contains(e.target)) dropdown.classList.remove('open');
   });

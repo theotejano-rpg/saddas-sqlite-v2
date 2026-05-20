@@ -29,19 +29,40 @@ $purposes  = [
     'Other'
 ];
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $lab_room = trim($_POST['lab_room'] ?? '');
-    $purpose  = trim($_POST['purpose']  ?? '');
-    $date_in  = trim($_POST['date_in']  ?? '');
+// Fetch occupied PCs per lab room (active or pending only)
+$occupied = [];
+foreach ($lab_rooms as $room) {
+    $s = $db->prepare("SELECT pc_number FROM sitin_logs WHERE lab_room = ? AND status IN ('active','pending') AND pc_number IS NOT NULL");
+    $s->execute([$room]);
+    $occupied[$room] = array_column($s->fetchAll(), 'pc_number');
+}
 
-    if ($lab_room === '') $errors['lab_room'] = 'Please select a lab room.';
-    if ($purpose  === '') $errors['purpose']  = 'Please select a purpose.';
-    if ($date_in  === '') $errors['date_in']  = 'Please select a date and time.';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $lab_room  = trim($_POST['lab_room']  ?? '');
+    $purpose   = trim($_POST['purpose']   ?? '');
+    $date_in   = trim($_POST['date_in']   ?? '');
+    $pc_number = isset($_POST['pc_number']) && $_POST['pc_number'] !== '' ? (int)$_POST['pc_number'] : null;
+
+    if ($lab_room  === '') $errors['lab_room'] = 'Please select a lab room.';
+    if ($purpose   === '') $errors['purpose']  = 'Please select a purpose.';
+    if ($date_in   === '') $errors['date_in']  = 'Please select a date and time.';
+    if ($pc_number === null) $errors['pc_number'] = 'Please select a PC seat.';
 
     if (!isset($errors['lab_room']) && !in_array($lab_room, $lab_rooms))
         $errors['lab_room'] = 'Please select a valid lab room.';
     if (!isset($errors['purpose']) && !in_array($purpose, $purposes))
         $errors['purpose'] = 'Please select a valid purpose.';
+    if ($pc_number !== null && ($pc_number < 1 || $pc_number > 50))
+        $errors['pc_number'] = 'Invalid PC number.';
+
+    // Check if PC is already taken
+    if (empty($errors) && $pc_number !== null) {
+        $taken = $db->prepare("SELECT id FROM sitin_logs WHERE lab_room = ? AND pc_number = ? AND status IN ('active','pending') LIMIT 1");
+        $taken->execute([$lab_room, $pc_number]);
+        if ($taken->fetch()) {
+            $errors['pc_number'] = 'That PC is already taken. Please choose another.';
+        }
+    }
 
     if (empty($errors) && $remaining <= 0) {
         $errors['general'] = 'You have no remaining sit-in sessions this semester.';
@@ -57,20 +78,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($errors)) {
         $ins = $db->prepare("
-            INSERT INTO sitin_logs (student_id, lab_room, purpose, date_in, status)
-            VALUES (?, ?, ?, ?, 'pending')
+            INSERT INTO sitin_logs (student_id, lab_room, purpose, date_in, status, pc_number)
+            VALUES (?, ?, ?, ?, 'pending', ?)
         ");
-        $ins->execute([$student['id'], $lab_room, $purpose, $date_in]);
+        $ins->execute([$student['id'], $lab_room, $purpose, $date_in, $pc_number]);
 
         $db->prepare('UPDATE students SET used = used + 1 WHERE id = ?')
            ->execute([$student['id']]);
 
-        $success = "Reservation submitted! Please wait for admin approval before your sit-in begins.";
+        $success = "Reservation submitted! PC #$pc_number in $lab_room. Please wait for admin approval.";
 
         $stmt = $db->prepare('SELECT * FROM students WHERE id = ? LIMIT 1');
         $stmt->execute([$student['id']]);
         $student   = $stmt->fetch();
         $remaining = $student['sessions'] - $student['used'];
+
+        // Refresh occupied list
+        foreach ($lab_rooms as $room) {
+            $s = $db->prepare("SELECT pc_number FROM sitin_logs WHERE lab_room = ? AND status IN ('active','pending') AND pc_number IS NOT NULL");
+            $s->execute([$room]);
+            $occupied[$room] = array_column($s->fetchAll(), 'pc_number');
+        }
     }
 }
 
@@ -94,6 +122,173 @@ $nav_student_active = 'reservation';
   <link rel="stylesheet" href="css/Style.css"/>
   <link rel="stylesheet" href="css/Students.css"/>
   <link rel="stylesheet" href="css/Reservation.css"/>
+  <style>
+    /* ── PC Picker Modal ── */
+    .pc-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .pc-modal-overlay.active { display: flex; }
+
+    .pc-modal {
+      background: #fff;
+      border-radius: 16px;
+      padding: 32px;
+      width: 90%;
+      max-width: 620px;
+      box-shadow: 0 8px 40px rgba(0,0,0,.18);
+      position: relative;
+      animation: modalIn .2s ease;
+    }
+    @keyframes modalIn {
+      from { transform: translateY(30px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+
+    .pc-modal-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: #1a202c;
+    }
+    .pc-modal-sub {
+      font-size: .85rem;
+      color: #718096;
+      margin-bottom: 20px;
+    }
+
+    .pc-legend {
+      display: flex;
+      gap: 18px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+    .pc-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: .82rem;
+      color: #4a5568;
+    }
+    .pc-legend-dot {
+      width: 16px; height: 16px;
+      border-radius: 4px;
+    }
+    .pc-legend-dot.available { background: #ebf8ff; border: 2px solid #90cdf4; }
+    .pc-legend-dot.occupied  { background: #fff5f5; border: 2px solid #fc8181; }
+    .pc-legend-dot.selected  { background: #2b6cb0; border: 2px solid #2b6cb0; }
+
+    .pc-grid {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .pc-seat {
+      aspect-ratio: 1;
+      border-radius: 8px;
+      border: 2px solid #90cdf4;
+      background: #ebf8ff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all .15s;
+      font-size: .65rem;
+      font-weight: 600;
+      color: #2b6cb0;
+      user-select: none;
+    }
+    .pc-seat:hover:not(.occupied) {
+      background: #bee3f8;
+      transform: scale(1.08);
+    }
+    .pc-seat.occupied {
+      background: #fff5f5;
+      border-color: #fc8181;
+      color: #c53030;
+      cursor: not-allowed;
+    }
+    .pc-seat.selected {
+      background: #2b6cb0;
+      border-color: #2b6cb0;
+      color: #fff;
+      transform: scale(1.08);
+    }
+    .pc-seat svg {
+      width: 14px; height: 14px;
+      margin-bottom: 2px;
+    }
+
+    .pc-modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+    .pc-btn-cancel {
+      padding: 10px 22px;
+      border-radius: 8px;
+      border: 2px solid #e2e8f0;
+      background: #fff;
+      color: #4a5568;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: .9rem;
+    }
+    .pc-btn-confirm {
+      padding: 10px 22px;
+      border-radius: 8px;
+      border: none;
+      background: #2b6cb0;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: .9rem;
+      opacity: .5;
+      pointer-events: none;
+    }
+    .pc-btn-confirm.ready {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .pc-selected-display {
+      margin-top: 8px;
+      padding: 10px 14px;
+      background: #ebf8ff;
+      border-radius: 8px;
+      font-size: .88rem;
+      color: #2b6cb0;
+      font-weight: 600;
+      display: none;
+    }
+    .pc-selected-display.visible { display: block; }
+
+    .res-pc-trigger {
+      margin-top: 8px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: 2px dashed #90cdf4;
+      background: #ebf8ff;
+      color: #2b6cb0;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: .88rem;
+      width: 100%;
+      text-align: left;
+      display: none;
+      transition: background .15s;
+    }
+    .res-pc-trigger:hover { background: #bee3f8; }
+    .res-pc-trigger.visible { display: block; }
+  </style>
 </head>
 <body class="student-page" style="display:flex;flex-direction:column;min-height:100vh;">
 
@@ -101,7 +296,6 @@ $nav_student_active = 'reservation';
 
 <main class="reservation-main" style="flex:1;">
 
-  
   <div class="res-page-header">
     <div class="res-page-header-text">
       <span class="section-eyebrow">SitIn Management</span>
@@ -116,7 +310,6 @@ $nav_student_active = 'reservation';
 
   <div class="res-layout">
 
-    
     <div class="res-form-col">
       <div class="res-card">
         <div class="res-card-header">
@@ -151,6 +344,7 @@ $nav_student_active = 'reservation';
         <?php else: ?>
 
         <form method="POST" action="Reservation.php" class="res-form" novalidate>
+          <input type="hidden" name="pc_number" id="pc_number_input" value="<?= htmlspecialchars($_POST['pc_number'] ?? '') ?>"/>
 
           <div class="res-field <?= isset($errors['lab_room']) ? 'res-field--error' : '' ?>">
             <label for="lab_room">
@@ -161,7 +355,7 @@ $nav_student_active = 'reservation';
               </svg>
               Lab Room
             </label>
-            <select id="lab_room" name="lab_room">
+            <select id="lab_room" name="lab_room" onchange="onLabRoomChange(this.value)">
               <option value="">— Select a room —</option>
               <?php foreach ($lab_rooms as $room): ?>
                 <option value="<?= $room ?>"<?= ($_POST['lab_room'] ?? '') === $room ? ' selected' : '' ?>>
@@ -171,6 +365,24 @@ $nav_student_active = 'reservation';
             </select>
             <?php if (isset($errors['lab_room'])): ?>
               <span class="res-field-msg"><?= htmlspecialchars($errors['lab_room']) ?></span>
+            <?php endif; ?>
+          </div>
+
+          <!-- PC Seat Trigger -->
+          <div class="res-field <?= isset($errors['pc_number']) ? 'res-field--error' : '' ?>">
+            <label>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                <line x1="8" y1="21" x2="16" y2="21"/>
+                <line x1="12" y1="17" x2="12" y2="21"/>
+              </svg>
+              PC Seat
+            </label>
+            <button type="button" class="res-pc-trigger <?= ($_POST['lab_room'] ?? '') !== '' ? 'visible' : '' ?>" id="pc_trigger" onclick="openPcModal()">
+              🖥️ <span id="pc_trigger_text">Click to select a PC seat</span>
+            </button>
+            <?php if (isset($errors['pc_number'])): ?>
+              <span class="res-field-msg"><?= htmlspecialchars($errors['pc_number']) ?></span>
             <?php endif; ?>
           </div>
 
@@ -233,7 +445,6 @@ $nav_student_active = 'reservation';
       </div>
     </div>
 
-    
     <div class="res-history-col">
       <div class="res-card">
         <div class="res-card-header">
@@ -266,7 +477,11 @@ $nav_student_active = 'reservation';
                   <?= ucfirst(htmlspecialchars($log['status'])) ?>
                 </span>
               </div>
-              <div class="rhi-purpose"><?= htmlspecialchars($log['purpose']) ?></div>
+              <div class="rhi-purpose"><?= htmlspecialchars($log['purpose']) ?>
+                <?php if ($log['pc_number']): ?>
+                  &mdash; PC #<?= $log['pc_number'] ?>
+                <?php endif; ?>
+              </div>
               <div class="rhi-date">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
@@ -283,7 +498,6 @@ $nav_student_active = 'reservation';
         <?php endif; ?>
       </div>
 
-      
       <div class="res-summary-card">
         <div class="rsc-row">
           <span class="rsc-label">Total Sessions</span>
@@ -310,7 +524,119 @@ $nav_student_active = 'reservation';
   </div>
 </main>
 
-<?php include __DIR__ . '/footer.php'; ?>
+<!-- PC Picker Modal -->
+<div class="pc-modal-overlay" id="pc_modal">
+  <div class="pc-modal">
+    <div class="pc-modal-title">🖥️ Select Your PC Seat</div>
+    <div class="pc-modal-sub" id="pc_modal_sub">Choose an available seat in the selected lab room.</div>
 
+    <div class="pc-legend">
+      <div class="pc-legend-item"><div class="pc-legend-dot available"></div> Available</div>
+      <div class="pc-legend-item"><div class="pc-legend-dot occupied"></div> Occupied</div>
+      <div class="pc-legend-item"><div class="pc-legend-dot selected"></div> Your selection</div>
+    </div>
+
+    <div class="pc-grid" id="pc_grid"></div>
+
+    <div class="pc-modal-actions">
+      <button type="button" class="pc-btn-cancel" onclick="closePcModal()">Cancel</button>
+      <button type="button" class="pc-btn-confirm" id="pc_confirm_btn" onclick="confirmPcSelection()">Confirm Seat</button>
+    </div>
+  </div>
+</div>
+
+<?php
+// Pass occupied data to JS
+$occupiedJson = json_encode($occupied);
+?>
+<script>
+const occupiedData = <?= $occupiedJson ?>;
+let selectedPc = null;
+let currentRoom = '';
+
+function onLabRoomChange(room) {
+  const trigger = document.getElementById('pc_trigger');
+  const input   = document.getElementById('pc_number_input');
+  const triggerText = document.getElementById('pc_trigger_text');
+
+  selectedPc = null;
+  input.value = '';
+  currentRoom = room;
+
+  if (room) {
+    trigger.classList.add('visible');
+    triggerText.textContent = 'Click to select a PC seat';
+  } else {
+    trigger.classList.remove('visible');
+  }
+}
+
+function openPcModal() {
+  currentRoom = document.getElementById('lab_room').value;
+  if (!currentRoom) return;
+
+  document.getElementById('pc_modal_sub').textContent = 'Choose an available seat in ' + currentRoom + '.';
+  buildGrid();
+  document.getElementById('pc_modal').classList.add('active');
+}
+
+function closePcModal() {
+  document.getElementById('pc_modal').classList.remove('active');
+}
+
+function buildGrid() {
+  const grid     = document.getElementById('pc_grid');
+  const occupied = occupiedData[currentRoom] || [];
+  grid.innerHTML = '';
+
+  for (let i = 1; i <= 50; i++) {
+    const isOccupied = occupied.includes(i);
+    const isSelected = selectedPc === i;
+
+    const seat = document.createElement('div');
+    seat.className = 'pc-seat' + (isOccupied ? ' occupied' : '') + (isSelected ? ' selected' : '');
+    seat.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>${i}`;
+    seat.title = isOccupied ? 'PC ' + i + ' — Occupied' : 'PC ' + i;
+
+    if (!isOccupied) {
+      seat.onclick = () => selectSeat(i);
+    }
+
+    grid.appendChild(seat);
+  }
+}
+
+function selectSeat(num) {
+  selectedPc = num;
+  buildGrid();
+  document.getElementById('pc_confirm_btn').classList.add('ready');
+}
+
+function confirmPcSelection() {
+  if (!selectedPc) return;
+  document.getElementById('pc_number_input').value = selectedPc;
+  document.getElementById('pc_trigger_text').textContent = '✅ PC #' + selectedPc + ' selected — click to change';
+  closePcModal();
+}
+
+// Close modal when clicking outside
+document.getElementById('pc_modal').addEventListener('click', function(e) {
+  if (e.target === this) closePcModal();
+});
+
+// On page load, if a room is already selected (e.g. after form error), show trigger
+window.addEventListener('DOMContentLoaded', () => {
+  const room = document.getElementById('lab_room').value;
+  if (room) onLabRoomChange(room);
+
+  const existingPc = document.getElementById('pc_number_input').value;
+  if (existingPc) {
+    selectedPc = parseInt(existingPc);
+    document.getElementById('pc_trigger_text').textContent = '✅ PC #' + existingPc + ' selected — click to change';
+  }
+});
+</script>
+
+<?php include __DIR__ . '/footer.php'; ?>
 </body>
 </html>

@@ -60,6 +60,15 @@ $nav_admin_active = $nav_admin_active ?? 'home';
   .admin-icon-btn:hover .tooltip {
     opacity: 1;
   }
+
+  .admin-notif-dot {
+    position: absolute;
+    top: 4px; right: 4px;
+    width: 8px; height: 8px;
+    background: #e03535;
+    border-radius: 50%;
+    border: 2px solid white;
+  }
 </style>
 
 <nav class="site-nav admin-site-nav">
@@ -116,6 +125,17 @@ $nav_admin_active = $nav_admin_active ?? 'home';
       <span class="tooltip">View Sit-in Records</span>
     </a>
 
+    <a href="AdminHistory.php" class="admin-icon-btn <?= $nav_admin_active==='history' ? 'active':'' ?>">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+        <polyline points="10 9 9 9 8 9"/>
+      </svg>
+      <span class="tooltip">Sit-in History</span>
+    </a>
+
     <a href="AdminReports.php" class="admin-icon-btn <?= $nav_admin_active==='reports' ? 'active':'' ?>">
       <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="18" y1="20" x2="18" y2="10"/>
@@ -123,13 +143,6 @@ $nav_admin_active = $nav_admin_active ?? 'home';
         <line x1="6"  y1="20" x2="6"  y2="14"/>
       </svg>
       <span class="tooltip">Sit-in Reports</span>
-    </a>
-
-    <a href="AdminFeedback.php" class="admin-icon-btn <?= $nav_admin_active==='feedback' ? 'active':'' ?>">
-      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-      </svg>
-      <span class="tooltip">Feedback Report</span>
     </a>
 
     <a href="AdminReservation.php" class="admin-icon-btn <?= $nav_admin_active==='reservation' ? 'active':'' ?>">
@@ -140,6 +153,23 @@ $nav_admin_active = $nav_admin_active ?? 'home';
         <line x1="3"  y1="10" x2="21" y2="10"/>
       </svg>
       <span class="tooltip">Reservation</span>
+    </a>
+
+    <!-- Feedback Tab (star icon) -->
+    <a href="AdminFeedback.php" class="admin-icon-btn <?= $nav_admin_active==='feedback' ? 'active':'' ?>">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+      </svg>
+      <span class="tooltip">Feedback</span>
+    </a>
+
+    <!-- Testimonials Tab (speech bubble with checkmark icon) -->
+    <a href="AdminTestimonials.php" class="admin-icon-btn <?= $nav_admin_active==='testimonials' ? 'active':'' ?>">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        <polyline points="9 11 11 13 15 9"/>
+      </svg>
+      <span class="tooltip">Testimonials</span>
     </a>
 
     <div class="sn-divider"></div>
