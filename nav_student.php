@@ -252,7 +252,7 @@ body.student-page a { text-decoration: none !important; }
         </div>
 
         <div class="notif-dropdown-footer">
-          <a href="Notification.php" class="notif-view-all-link">View all notifications →</a>
+          <a href="mark_notifications_read.php?mark_all=1&return=Notification.php" class="notif-view-all-link">View all notifications →</a>
         </div>
       </div>
     </div>
@@ -311,6 +311,13 @@ body.student-page a { text-decoration: none !important; }
       </svg>
       Log Out
     </a>
+    <!-- Theme toggle for students -->
+    <button id="themeToggleStudent" class="sn-icon-btn theme-toggle" title="Toggle theme" aria-pressed="false" style="margin-left:8px;">
+      <svg id="themeIconStudent" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="4"></circle>
+      </svg>
+      <span class="tooltip">Toggle theme</span>
+    </button>
   </div>
 </nav>
 
@@ -330,7 +337,9 @@ body.student-page a { text-decoration: none !important; }
       const badge = item.querySelector('div:first-child');
       if (badge && badge.textContent.includes('NEW')) badge.remove();
     });
+    // mark announcements seen (session) and notifications read (DB)
     fetch(window.location.pathname + '?mark_notif_seen=1');
+    fetch('mark_notifications_read.php?mark_all=1').catch(()=>{});
   }
 
   wrapper.addEventListener('mouseenter', () => dropdown.classList.add('open'));
@@ -356,3 +365,82 @@ body.student-page a { text-decoration: none !important; }
   });
 })();
 </script>
+
+<script>
+// Theme toggle: persist theme in localStorage and apply .dark-theme to documentElement (student)
+(function () {
+  const key = 'saddas_theme';
+  const btn = document.getElementById('themeToggleStudent');
+  const icon = document.getElementById('themeIconStudent');
+  const sunSVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M4.93 19.07l1.41-1.41"/><path d="M17.66 6.34l1.41-1.41"/></svg>';
+  const moonSVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
+
+  function applyTheme(theme) {
+    if (theme === 'dark') { document.documentElement.classList.add('dark-theme'); document.body.classList.add('dark-theme'); } else { document.documentElement.classList.remove('dark-theme'); document.body.classList.remove('dark-theme'); }
+    if (icon) icon.innerHTML = theme === 'dark' ? moonSVG : sunSVG;
+    if (btn) btn.setAttribute('aria-pressed', theme === 'dark');
+    try { localStorage.setItem(key, theme); } catch (e) {}
+    // Also set inline background/text styles on body to override heavy global gradients
+    try {
+      if (theme === 'dark') {
+        document.documentElement.style.background = 'var(--dark-bg)';
+        document.documentElement.style.color = 'var(--text-soft)';
+        document.body.style.background = 'var(--dark-bg)';
+        document.body.style.color = 'var(--text-soft)';
+        const main = document.querySelector('.admin-main, .site-main, .main'); if (main) main.style.background = 'transparent';
+      } else {
+        document.documentElement.style.background = '';
+        document.documentElement.style.color = '';
+        document.body.style.background = '';
+        document.body.style.color = '';
+        const main = document.querySelector('.admin-main, .site-main, .main'); if (main) main.style.background = '';
+      }
+    } catch (e) {}
+  }
+
+  // init
+  try {
+    const saved = localStorage.getItem(key) || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    applyTheme(saved);
+  } catch (e) { applyTheme('light'); }
+
+  if (btn) btn.addEventListener('click', function (e) {
+    e.preventDefault();
+    const isDark = document.documentElement.classList.contains('dark-theme');
+    applyTheme(isDark ? 'light' : 'dark');
+  });
+})();
+</script>
+
+<style>
+/* Comfortable dark theme overrides (student) */
+:root { --dark-bg: #0b1220; --dark-panel: #0f1724; --muted: #9aa5b4; --text-soft: #dbeafe; --accent: #4aa3ff; }
+html, body { transition: background-color 200ms ease, color 200ms ease; }
+.dark-theme, html.dark-theme {
+  background-color: var(--dark-bg) !important;
+  color: var(--text-soft) !important;
+}
+/* Force solid dark navbar (override other gradients/transparency) */
+html.dark-theme .site-nav, .dark-theme .site-nav {
+  background-color: var(--dark-panel) !important;
+  background-image: none !important;
+  box-shadow: 0 6px 24px rgba(2,6,23,0.6) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+  z-index: 9999 !important;
+}
+/* Ensure navbar children use readable colors */
+html.dark-theme .site-nav .nav-left-text strong,
+html.dark-theme .site-nav .nav-left-text small,
+html.dark-theme .site-nav a,
+html.dark-theme .site-nav .sn-icon-btn,
+html.dark-theme .site-nav .nav-btn {
+  color: var(--text-soft) !important;
+}
+/* Remove any backdrop filter so underlying gradient doesn't show through */
+html.dark-theme .site-nav, html.dark-theme .site-nav * { backdrop-filter: none !important; }
+.dark-theme .nav-left-text small { color: var(--muted); }
+.dark-theme .sn-icon-btn { color: var(--text-soft); }
+.dark-theme .sn-icon-btn:hover { background: rgba(255,255,255,0.03); }
+.dark-theme .notif-dropdown { background: var(--dark-panel); color: var(--text-soft); border-color: rgba(255,255,255,0.03); box-shadow: 0 10px 30px rgba(2,6,23,0.6); }
+.theme-toggle svg { display: block; }
+</style>

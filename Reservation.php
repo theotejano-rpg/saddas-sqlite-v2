@@ -59,6 +59,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!isset($errors['lab_room']) && !in_array($lab_room, $lab_rooms))
         $errors['lab_room'] = 'Invalid lab room.';
+
+    // Check if lab is disabled by admin
+    if (!isset($errors['lab_room']) && $lab_room !== '') {
+        $lab_check = $db->prepare("SELECT is_enabled FROM lab_settings WHERE lab_room = ? LIMIT 1");
+        $lab_check->execute([$lab_room]);
+        $lab_row = $lab_check->fetch();
+        if ($lab_row && $lab_row['is_enabled'] == 0) {
+            $errors['lab_room'] = $lab_room . ' is currently closed for reservations.';
+        }
+    }
     if ($pc_number !== null && ($pc_number < 1 || $pc_number > 50))
         $errors['pc_number'] = 'Invalid PC number.';
 
@@ -89,8 +99,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $db->prepare("INSERT INTO sitin_logs (student_id, lab_room, purpose, date_in, status, pc_number) VALUES (?,?,?,?,'pending',?)")
            ->execute([$student['id'], $lab_room, $purpose, $date_in, $pc_number]);
 
-        $db->prepare('UPDATE students SET used = used + 1 WHERE id = ?')->execute([$student['id']]);
-
+  // NOTE: session deduction now happens when the admin ends the sit-in (AdminSitin.php)
+  // previously we incremented 'used' here on reservation creation; remove that so
+  // students keep their session until admin marks the session completed.
         $notif_msg = "{$student['first_name']} {$student['last_name']} ({$student['student_id']}) reserved PC #{$pc_number} in {$lab_room} for {$purpose}.";
         $db->prepare("INSERT INTO notifications (type, message, link) VALUES ('reservation', ?, 'AdminSitin.php')")
            ->execute([$notif_msg]);

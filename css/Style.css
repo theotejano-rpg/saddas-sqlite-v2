@@ -1896,3 +1896,73 @@ canvas#purposeChart { max-height: 220px; }
   .admin-nav-links { display: none; }
   .admin-main { padding: 0 16px 40px; }
 }
+
+/* ==========================
+   Global dark theme overrides
+   Enable by adding .dark-theme to <html> or <body>
+   ========================== */
+html.dark-theme, body.dark-theme {
+  --dt-bg: #071026;
+  --dt-surface: #0f1724;
+  --dt-panel: #0c1520;
+  --dt-muted: #9aa5b4;
+  --dt-text: #dbeafe;
+}
+
+html.dark-theme, body.dark-theme {
+  background: var(--dt-bg) !important;
+  color: var(--dt-text) !important;
+}
+
+/* Navigation */
+html.dark-theme .site-nav, body.dark-theme .site-nav,
+html.dark-theme .admin-site, body.dark-theme .admin-site {
+  background: var(--dt-surface) !important;
+  border-bottom-color: rgba(255,255,255,0.04) !important;
+  box-shadow: 0 6px 24px rgba(2,6,23,0.6) !important;
+  backdrop-filter: none !important;
+}
+html.dark-theme .nav-left-text strong { color: var(--dt-text) !important; }
+html.dark-theme .nav-left-text small { color: var(--dt-muted) !important; }
+html.dark-theme .nav-link, html.dark-theme .nav-btn, html.dark-theme .admin-icon-btn { color: var(--dt-text) !important; }
+
+/* Panels and cards */
+html.dark-theme .admin-card,
+html.dark-theme .pc-mgmt-card,
+html.dark-theme .pc-modal,
+html.dark-theme .auth-card,
+html.dark-theme .feature,
+html.dark-theme .hero-badge {
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)) !important;
+  border-color: rgba(255,255,255,0.03) !important;
+  color: var(--dt-text) !important;
+  box-shadow: 0 8px 30px rgba(2,6,23,0.6) !important;
+}
+
+/* Tables */
+html.dark-theme .sw-table, html.dark-theme table, html.dark-theme .admin-table {
+  background: transparent !important; color: var(--dt-text) !important;
+}
+html.dark-theme .sw-table th, html.dark-theme .admin-table th { background: rgba(255,255,255,0.02) !important; color: var(--dt-text) !important; }
+html.dark-theme .sw-table td, html.dark-theme .admin-table td { border-bottom-color: rgba(255,255,255,0.03) !important; }
+
+/* Inputs */
+html.dark-theme input, html.dark-theme select, html.dark-theme textarea, html.dark-theme .search-box-wrap input {
+  background: rgba(255,255,255,0.02) !important; color: var(--dt-text) !important; border-color: rgba(255,255,255,0.04) !important;
+}
+
+/* PC tiles */
+html.dark-theme .pc-grid { background: transparent !important; }
+html.dark-theme .pc-tile { background: rgba(255,255,255,0.01) !important; border-color: rgba(255,255,255,0.06) !important; color: var(--dt-text) !important; }
+html.dark-theme .pc-tile.available { background: rgba(34,197,94,0.06) !important; }
+html.dark-theme .pc-tile.disabled { background: rgba(224,53,53,0.06) !important; }
+
+/* Notifications, dropdowns, modals */
+html.dark-theme .pc-ctx-menu, html.dark-theme .notif-dropdown, html.dark-theme .toast-fixed, html.dark-theme .modal-box {
+  background: var(--dt-panel) !important; border-color: rgba(255,255,255,0.03) !important; color: var(--dt-text) !important; box-shadow: 0 10px 30px rgba(2,6,23,0.6) !important;
+}
+html.dark-theme .notif-badge { background: #ff6b6b !important; border: 2px solid var(--dt-bg) !important; color: white !important; }
+html.dark-theme .notif-item.unread { background: rgba(74,163,255,0.06) !important; }
+
+/* Footer */
+html.dark-theme .site-footer { background: transparent !important; border-top-color: rgba(255,255,255,0.03) !important; color: var(--dt-muted) !important; }

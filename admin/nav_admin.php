@@ -147,7 +147,7 @@ $unread_count = $db->query("SELECT COUNT(*) FROM notifications WHERE is_read = 0
 
     <!-- NOTIFICATION BELL -->
     <div class="notif-bell-wrap" id="notif_wrap">
-      <button type="button" class="admin-icon-btn" onclick="toggleNotif(event)" id="notif_btn">
+  <button type="button" class="admin-icon-btn" onclick="toggleNotif(event)" id="notif_btn">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
           <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
@@ -158,7 +158,7 @@ $unread_count = $db->query("SELECT COUNT(*) FROM notifications WHERE is_read = 0
         <span class="tooltip">Notifications</span>
       </button>
 
-      <div class="notif-dropdown" id="notif_dropdown">
+  <div class="notif-dropdown" id="notif_dropdown">
         <div class="notif-dropdown-header">
           Notifications
           <?php if ($unread_count > 0): ?>
@@ -171,8 +171,9 @@ $unread_count = $db->query("SELECT COUNT(*) FROM notifications WHERE is_read = 0
           if (empty($notifs)): ?>
             <div class="notif-empty">No notifications yet.</div>
           <?php else: foreach ($notifs as $n): ?>
-            <a href="<?= htmlspecialchars($n['link']) ?>?mark_notif=<?= $n['id'] ?>"
-               class="notif-item <?= $n['is_read'] ? '' : 'unread' ?>">
+        <?php $return = htmlspecialchars($n['link']); ?>
+        <a href="mark_notifications_read.php?mark_notif=<?= $n['id'] ?>&return=<?= urlencode($return) ?>"
+          class="notif-item <?= $n['is_read'] ? '' : 'unread' ?>">
               <div class="notif-dot <?= $n['is_read'] ? 'read' : '' ?>"></div>
               <div>
                 <div class="notif-item-text"><?= htmlspecialchars($n['message']) ?></div>
@@ -190,16 +191,113 @@ $unread_count = $db->query("SELECT COUNT(*) FROM notifications WHERE is_read = 0
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       Log Out
     </a>
+    <!-- THEME TOGGLE (to the right of logout) -->
+    <button id="themeToggleAdmin" class="admin-icon-btn theme-toggle" title="Toggle theme" aria-pressed="false">
+      <svg id="themeIconAdmin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="4"></circle>
+      </svg>
+      <span class="tooltip">Toggle theme</span>
+    </button>
   </div>
 </nav>
 <script>
 function toggleNotif(e) {
   e.stopPropagation();
-  document.getElementById('notif_dropdown').classList.toggle('open');
+  const d = document.getElementById('notif_dropdown');
+  d.classList.toggle('open');
+  // If opening, mark all notifications read via AJAX and remove badge
+  if (d.classList.contains('open')) {
+    fetch('mark_notifications_read.php?mark_all=1').then(() => {
+      const b = document.querySelector('.notif-badge'); if (b) b.remove();
+      document.querySelectorAll('.notif-item.unread').forEach(it => it.classList.remove('unread'));
+      document.querySelectorAll('.notif-dot').forEach(dot => dot.classList.add('read'));
+    }).catch(()=>{});
+  }
 }
 document.addEventListener('click', function(e) {
   const wrap = document.getElementById('notif_wrap');
   if (wrap && !wrap.contains(e.target))
     document.getElementById('notif_dropdown').classList.remove('open');
 });
+
+// Theme toggle: persist theme in localStorage and apply .dark-theme to documentElement
+(function () {
+  const key = 'saddas_theme';
+  const btn = document.getElementById('themeToggleAdmin');
+  const icon = document.getElementById('themeIconAdmin');
+  const sunSVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M4.93 19.07l1.41-1.41"/><path d="M17.66 6.34l1.41-1.41"/></svg>';
+  const moonSVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
+
+  function applyTheme(theme) {
+    if (theme === 'dark') { document.documentElement.classList.add('dark-theme'); document.body.classList.add('dark-theme'); } else { document.documentElement.classList.remove('dark-theme'); document.body.classList.remove('dark-theme'); }
+    if (icon) icon.innerHTML = theme === 'dark' ? moonSVG : sunSVG;
+    if (btn) btn.setAttribute('aria-pressed', theme === 'dark');
+    try { localStorage.setItem(key, theme); } catch (e) {}
+    // Also set inline background/text styles on body to override heavy global gradients
+    try {
+      if (theme === 'dark') {
+        document.documentElement.style.background = 'var(--dark-bg)';
+        document.documentElement.style.color = 'var(--text-soft)';
+        document.body.style.background = 'var(--dark-bg)';
+        document.body.style.color = 'var(--text-soft)';
+        // force main content background transparent so panels show dark panels from CSS
+        const main = document.querySelector('.admin-main'); if (main) main.style.background = 'transparent';
+      } else {
+        document.documentElement.style.background = '';
+        document.documentElement.style.color = '';
+        document.body.style.background = '';
+        document.body.style.color = '';
+        const main = document.querySelector('.admin-main'); if (main) main.style.background = '';
+      }
+    } catch (e) {}
+  }
+
+  // init
+  try {
+    const saved = localStorage.getItem(key) || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    applyTheme(saved);
+  } catch (e) { applyTheme('light'); }
+
+  if (btn) btn.addEventListener('click', function (e) {
+    e.preventDefault();
+    const isDark = document.documentElement.classList.contains('dark-theme');
+    applyTheme(isDark ? 'light' : 'dark');
+  });
+})();
 </script>
+
+<style>
+/* Comfortable dark theme overrides (admin) */
+:root { --dark-bg: #0b1220; --dark-panel: #0f1724; --dark-surface: #0c1320; --muted: #9aa5b4; --text-soft: #dbeafe; --accent: #4aa3ff; }
+html, body { transition: background-color 200ms ease, color 200ms ease; }
+.dark-theme, html.dark-theme {
+  background-color: var(--dark-bg) !important;
+  color: var(--text-soft) !important;
+}
+/* Force solid dark navbar (override other gradients/transparency) */
+html.dark-theme .site-nav, .dark-theme .site-nav {
+  background-color: var(--dark-panel) !important;
+  background-image: none !important;
+  box-shadow: 0 6px 24px rgba(2,6,23,0.6) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+  z-index: 9999 !important;
+}
+/* Ensure navbar children use readable colors */
+html.dark-theme .site-nav .nav-left-text strong,
+html.dark-theme .site-nav .nav-left-text small,
+html.dark-theme .site-nav a,
+html.dark-theme .site-nav .admin-icon-btn,
+html.dark-theme .site-nav .nav-btn {
+  color: var(--text-soft) !important;
+}
+/* Remove any backdrop filter so underlying gradient doesn't show through */
+html.dark-theme .site-nav, html.dark-theme .site-nav * { backdrop-filter: none !important; }
+.dark-theme .nav-left-text small { color: var(--muted); }
+.dark-theme .admin-icon-btn, .dark-theme .nav-btn { color: var(--text-soft); }
+.dark-theme .admin-icon-btn:hover, .dark-theme .sn-icon-btn:hover { background: rgba(255,255,255,0.03); }
+.dark-theme .notif-dropdown { background: var(--dark-panel); color: var(--text-soft); border-color: rgba(255,255,255,0.03); box-shadow: 0 10px 30px rgba(2,6,23,0.6); }
+.dark-theme .notif-item { border-bottom-color: rgba(255,255,255,0.02); }
+.dark-theme .notif-item.unread { background: rgba(74,163,255,0.06); }
+.dark-theme .notif-badge { background: #ff6b6b; border: 2px solid var(--dark-bg); color: white; }
+.theme-toggle svg { display: block; }
+</style>
