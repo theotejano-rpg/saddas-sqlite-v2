@@ -336,10 +336,10 @@ $nav_admin_active = 'software';
 
 <?php
 echo '<script>';
-echo 'const OCCUPIED = <?= json_encode($occupied_pcs) ?>;
-const PENDING  = <?= json_encode($pending_pcs) ?>;
-const LAB = ' . json_encode($selected_lab) . ';';
-echo 'const ALL_SW = ' . json_encode($all_software) . ';';
+echo 'const OCCUPIED = ' . json_encode($occupied_pcs) . ';';
+echo 'const PENDING  = ' . json_encode($pending_pcs) . ';';
+echo 'const LAB      = ' . json_encode($selected_lab) . ';';
+echo 'const ALL_SW   = ' . json_encode($all_software) . ';';
 echo 'const pcStates = ' . json_encode($pc_states) . ';';
 echo 'const swStates = ' . json_encode($sw_states) . ';';
 echo '</script>';
@@ -367,8 +367,8 @@ function openSwModal(pc) {
   document.getElementById('swModalTitle').textContent = '🖥️ PC #' + pc + ' — ' + LAB;
   document.getElementById('swModalSub').textContent   = 'Enable or disable software available on PC #' + pc + '.';
 
-  // PC enable toggle
-  const isEnabled = pcStates[pc] !== undefined ? pcStates[pc] : 1;
+  // PC enable toggle — use String(pc) because JSON object keys are always strings
+  const isEnabled = pcStates[String(pc)] !== undefined ? pcStates[String(pc)] : 1;
   document.getElementById('pcEnableToggle').checked = !!isEnabled;
 
   // Build software list
@@ -380,7 +380,7 @@ function buildSwList(pc, pcEnabled) {
   const list = document.getElementById('swModalList');
   list.innerHTML = '';
   ALL_SW.forEach(sw => {
-    const swEnabled = swStates[pc] && swStates[pc][sw] !== undefined ? swStates[pc][sw] : 1;
+    const swEnabled = swStates[String(pc)] && swStates[String(pc)][sw] !== undefined ? swStates[String(pc)][sw] : 1;
     const item = document.createElement('div');
     item.className = 'sw-modal-item' + (swEnabled ? '' : ' sw-off');
     item.id = 'sw-item-' + pc + '-' + ALL_SW.indexOf(sw);
@@ -409,7 +409,7 @@ function togglePcEnabled(enabled) {
   document.querySelectorAll('#swModalList input[type=checkbox]').forEach(cb => cb.disabled = !enabled);
 
   // Update local state
-  pcStates[currentPc] = val;
+  pcStates[String(currentPc)] = val;
 
   post({ action: 'toggle_pc', lab_room: LAB, pc_number: currentPc, is_enabled: val })
     .then(() => showToast());
@@ -420,8 +420,8 @@ function toggleSoftware(pc, sw, enabled, idx) {
   if (item) item.classList.toggle('sw-off', !enabled);
 
   // Update local state
-  if (!swStates[pc]) swStates[pc] = {};
-  swStates[pc][sw] = enabled ? 1 : 0;
+  if (!swStates[String(pc)]) swStates[String(pc)] = {};
+  swStates[String(pc)][sw] = enabled ? 1 : 0;
 
   updatePcBadge(pc);
 
@@ -431,8 +431,8 @@ function toggleSoftware(pc, sw, enabled, idx) {
 
 function enableAllSoftware() {
   ALL_SW.forEach((sw, idx) => {
-    if (!swStates[currentPc]) swStates[currentPc] = {};
-    swStates[currentPc][sw] = 1;
+    if (!swStates[String(currentPc)]) swStates[String(currentPc)] = {};
+    swStates[String(currentPc)][sw] = 1;
     post({ action: 'toggle_software', lab_room: LAB, pc_number: currentPc, software: sw, is_enabled: 1 });
     const item = document.getElementById('sw-item-' + currentPc + '-' + idx);
     if (item) {
@@ -450,7 +450,7 @@ function updatePcBadge(pc) {
   const badge = seat.querySelector('.pc-sw-badge');
   if (!badge) return;
 
-  const pcSw = swStates[pc] || {};
+  const pcSw = swStates[String(pc)] || {};
   const enabledCnt = Object.values(pcSw).filter(v => v === 1).length;
   const total = ALL_SW.length;
 

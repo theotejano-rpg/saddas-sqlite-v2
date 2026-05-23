@@ -139,6 +139,12 @@ $unread_count = $db->query("SELECT COUNT(*) FROM notifications WHERE is_read = 0
       <span class="tooltip">Software Management</span>
     </a>
 
+    <!-- TESTIMONIALS TAB -->
+    <a href="AdminTestimonials.php" class="admin-icon-btn <?= $nav_admin_active==='testimonials' ? 'active':'' ?>">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="13" y2="13"/></svg>
+      <span class="tooltip">Testimonials</span>
+    </a>
+
     <!-- NOTIFICATION BELL -->
     <div class="notif-bell-wrap" id="notif_wrap">
       <button type="button" class="admin-icon-btn" onclick="toggleNotif(event)" id="notif_btn">

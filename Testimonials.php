@@ -8,12 +8,23 @@ if (empty($_SESSION['student'])) {
 require_once __DIR__ . '/db.php';
 $db         = get_db();
 $student_id = $_SESSION['student']['id'];
-$student    = $db->prepare('SELECT * FROM students WHERE id = ? LIMIT 1');
+
+// Ensure testimonials table exists
+$db->exec("
+    CREATE TABLE IF NOT EXISTS testimonials (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        student_id INTEGER NOT NULL REFERENCES students(id),
+        message    TEXT    NOT NULL,
+        status     TEXT    NOT NULL DEFAULT 'pending',
+        created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+    )
+");
+
+$student = $db->prepare('SELECT * FROM students WHERE id = ? LIMIT 1');
 $student->execute([$student_id]);
-$student    = $student->fetch();
+$student = $student->fetch();
 
 $nav_student_active = 'testimonials';
-
 $success_msg = '';
 $error_msg   = '';
 
@@ -24,11 +35,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message'])) {
     } else {
         $stmt = $db->prepare("INSERT INTO testimonials (student_id, message, status, created_at) VALUES (?, ?, 'pending', datetime('now'))");
         $stmt->execute([$student_id, $message]);
-
-        $notif_msg  = "New testimonial submitted by " . $student['first_name'] . ' ' . $student['last_name'];
-        $notif_stmt = $db->prepare("INSERT INTO admin_notifications (type, message, is_read, created_at) VALUES ('testimonial', ?, 0, datetime('now'))");
-        $notif_stmt->execute([$notif_msg]);
-
         $success_msg = 'Your testimonial has been submitted and is pending approval!';
     }
 }
@@ -38,7 +44,7 @@ $my_stmt->execute([$student_id]);
 $my_testimonials = $my_stmt->fetchAll();
 
 $approved = $db->query("
-    SELECT t.*, s.first_name, s.last_name, s.student_id as sidno
+    SELECT t.*, s.first_name, s.last_name
     FROM testimonials t
     JOIN students s ON s.id = t.student_id
     WHERE t.status = 'approved'
@@ -80,9 +86,7 @@ $approved = $db->query("
       transition: border 0.18s;
       box-sizing: border-box;
     }
-    .testi-form-card textarea:focus {
-      outline: none; border-color: #0a4d8c;
-    }
+    .testi-form-card textarea:focus { outline: none; border-color: #0a4d8c; }
     .testi-submit-btn {
       margin-top: 12px;
       background: #0a4d8c; color: white;
