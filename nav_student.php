@@ -383,10 +383,10 @@ body.student-page a { text-decoration: none !important; }
     // Also set inline background/text styles on body to override heavy global gradients
     try {
       if (theme === 'dark') {
-        document.documentElement.style.background = 'var(--dark-bg)';
-        document.documentElement.style.color = 'var(--text-soft)';
-        document.body.style.background = 'var(--dark-bg)';
-        document.body.style.color = 'var(--text-soft)';
+  document.documentElement.style.background = 'var(--dark-bg)';
+  document.documentElement.style.color = '#ffffff';
+  document.body.style.background = 'var(--dark-bg)';
+  document.body.style.color = '#ffffff';
         const main = document.querySelector('.admin-main, .site-main, .main'); if (main) main.style.background = 'transparent';
       } else {
         document.documentElement.style.background = '';
@@ -414,7 +414,7 @@ body.student-page a { text-decoration: none !important; }
 
 <style>
 /* Comfortable dark theme overrides (student) */
-:root { --dark-bg: #0b1220; --dark-panel: #0f1724; --muted: #9aa5b4; --text-soft: #dbeafe; --accent: #4aa3ff; }
+:root { --dark-bg: #0b1220; --dark-panel: #0f1724; --muted: #9aa5b4; --text-soft: #ffffff; --accent: #4aa3ff; }
 html, body { transition: background-color 200ms ease, color 200ms ease; }
 .dark-theme, html.dark-theme {
   background-color: var(--dark-bg) !important;

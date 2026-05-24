@@ -237,9 +237,9 @@ document.addEventListener('click', function(e) {
     try {
       if (theme === 'dark') {
         document.documentElement.style.background = 'var(--dark-bg)';
-        document.documentElement.style.color = 'var(--text-soft)';
-        document.body.style.background = 'var(--dark-bg)';
-        document.body.style.color = 'var(--text-soft)';
+  document.documentElement.style.color = '#ffffff';
+  document.body.style.background = 'var(--dark-bg)';
+  document.body.style.color = '#ffffff';
         // force main content background transparent so panels show dark panels from CSS
         const main = document.querySelector('.admin-main'); if (main) main.style.background = 'transparent';
       } else {
@@ -268,7 +268,7 @@ document.addEventListener('click', function(e) {
 
 <style>
 /* Comfortable dark theme overrides (admin) */
-:root { --dark-bg: #0b1220; --dark-panel: #0f1724; --dark-surface: #0c1320; --muted: #9aa5b4; --text-soft: #dbeafe; --accent: #4aa3ff; }
+:root { --dark-bg: #0b1220; --dark-panel: #0f1724; --dark-surface: #0c1320; --muted: #9aa5b4; --text-soft: #ffffff; --accent: #4aa3ff; }
 html, body { transition: background-color 200ms ease, color 200ms ease; }
 .dark-theme, html.dark-theme {
   background-color: var(--dark-bg) !important;

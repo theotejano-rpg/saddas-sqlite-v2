@@ -60,7 +60,9 @@ $rows = $db->query("SELECT lab_room FROM lab_settings ORDER BY lab_room")->fetch
 foreach ($rows as $r) $lab_rooms[] = $r['lab_room'];
 
 // ── AJAX handlers ─────────────────────────────────────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_SERVER['HTTP_X_REQUESTED_WITH'])) {
+// Accept POSTed AJAX even if the X-Requested-With header is missing (some proxies/clients strip it).
+// We require an 'action' field to avoid accidentally running handlers on unrelated POSTs.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) || isset($_POST['action']))) {
     $action = $_POST['action'] ?? '';
 
     // Toggle lab enabled/disabled
@@ -89,6 +91,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_SERVER['HTTP_X_REQUESTED_W
         echo json_encode(['ok' => true]);
       } catch (Exception $e) { echo json_encode(['ok'=>false,'msg'=>$e->getMessage()]); }
     } else echo json_encode(['ok'=>false,'msg'=>'Invalid name']);
+    exit;
+  }
+
+  // Get a distinct global list of lab software (convenience endpoint)
+  if ($action === 'get_global_software') {
+    $gstmt = $db->prepare("SELECT DISTINCT software, description FROM lab_software ORDER BY software");
+    $gstmt->execute();
+    $grows = $gstmt->fetchAll();
+    echo json_encode(['ok' => true, 'global_rows' => $grows]);
     exit;
   }
 
@@ -199,6 +210,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_SERVER['HTTP_X_REQUESTED_W
       $lstmt = $db->prepare("SELECT id, software, description FROM lab_software WHERE lab_room=? ORDER BY software");
       $lstmt->execute([$lab]);
       $lab_rows = $lstmt->fetchAll();
+      // If there are no explicit lab_software rows (data inconsistency or legacy),
+      // fall back to deriving available software from any pc_software records for this lab.
+      if (empty($lab_rows)) {
+        $fallback = $db->prepare("SELECT DISTINCT software FROM pc_software WHERE lab_room=? ORDER BY software");
+        $fallback->execute([$lab]);
+        $frows = $fallback->fetchAll();
+        $lab_rows = [];
+        foreach ($frows as $fr) {
+          $lab_rows[] = ['id' => null, 'software' => $fr['software'], 'description' => ''];
+        }
+        // Persist these as lab-level software entries so future calls return them directly
+        try {
+          $insLab = $db->prepare("INSERT OR IGNORE INTO lab_software (lab_room, software, description) VALUES (?,?,?)");
+          foreach ($lab_rows as $lr) {
+            $insLab->execute([$lab, $lr['software'], $lr['description'] ?? '']);
+          }
+          // re-query to get real ids if any were inserted
+          $lstmt->execute([$lab]);
+          $lab_rows = $lstmt->fetchAll();
+        } catch (Exception $e) {
+          // ignore migration errors and fall back to derived list
+        }
+      }
+      // If still empty, as a convenience show globally-known lab software (distinct across all labs)
+      if (empty($lab_rows)) {
+        $gstmt = $db->prepare("SELECT DISTINCT software, description FROM lab_software ORDER BY software");
+        $gstmt->execute();
+        $grows = $gstmt->fetchAll();
+        foreach ($grows as $gr) {
+          $lab_rows[] = ['id' => null, 'software' => $gr['software'], 'description' => $gr['description'] ?? ''];
+        }
+      }
       echo json_encode(['ok' => true, 'pc_rows' => $pc_rows, 'lab_rows' => $lab_rows]);
     } else {
       echo json_encode(['ok' => false]);
@@ -495,6 +538,37 @@ $nav_admin_active = 'software';
     .pc-sel-count {
       font-size: 0.8rem; font-weight: 700; color: #0a4d8c; margin-right: 4px;
     }
+
+    /* Dark mode adjustments for select-toolbar: make overlay solid, legible and above other elements */
+    html.dark-theme .pc-sel-toolbar {
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)) !important;
+      color: #ffffff !important;
+      box-shadow: 0 12px 34px rgba(0,0,0,0.6) !important;
+      border-top: 1px solid rgba(255,255,255,0.06) !important;
+      border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+      z-index: 10050 !important;
+      backdrop-filter: none !important;
+      padding: 10px 18px !important;
+    }
+    html.dark-theme .pc-sel-toolbar .pc-sel-count { color: #ffffff !important; }
+    /* default toolbar buttons: light translucent background with white text */
+    html.dark-theme .pc-sel-toolbar .pc-sel-btn {
+      background: rgba(255,255,255,0.06) !important;
+      color: #0b1220 !important;
+      border-radius: 7px !important;
+      padding: 6px 12px !important;
+      font-weight: 700 !important;
+    }
+    /* ensure colored action buttons remain colored and visible */
+    html.dark-theme .pc-sel-toolbar .pc-sel-btn.avail { background: #16a34a !important; color: #ffffff !important; }
+    html.dark-theme .pc-sel-toolbar .pc-sel-btn.dis   { background: #dc2626 !important; color: #ffffff !important; }
+    html.dark-theme .pc-sel-toolbar .pc-sel-btn.maint { background: #d97706 !important; color: #ffffff !important; }
+    /* make the cancel button a light pill with dark text so it's readable */
+    html.dark-theme .pc-sel-toolbar .pc-sel-btn.cancel {
+      background: #ffffff !important;
+      color: #0b1220 !important;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.35) !important;
+    }
     .pc-sel-btn {
       padding: 6px 13px; border-radius: 7px; border: none;
       font-size: 0.75rem; font-weight: 700; cursor: pointer;
@@ -589,14 +663,14 @@ $nav_admin_active = 'software';
   </style>
   <style>
     /* Page-specific dark theme overrides (applies when documentElement has .dark-theme) */
-    :root { --ds-bg: #0b1220; --ds-surface: #0f1724; --ds-panel: #0c1622; --ds-muted: #9aa5b4; --ds-text: #dbeafe; --ds-border: rgba(255,255,255,0.04); --accent-soft: rgba(74,163,255,0.06); }
+  :root { --ds-bg: #0b1220; --ds-surface: #0f1724; --ds-panel: #0c1622; --ds-muted: #9aa5b4; --ds-text: #ffffff; --ds-border: rgba(255,255,255,0.04); --accent-soft: rgba(74,163,255,0.06); }
     html.dark-theme, .dark-theme {
       background-color: var(--ds-bg) !important;
       color: var(--ds-text) !important;
     }
 
     /* Main containers and cards */
-    .dark-theme .admin-main { background: transparent; color: var(--ds-text); }
+  .dark-theme .admin-main { background: transparent; color: var(--ds-text); }
     .dark-theme .admin-card,
     .dark-theme .pc-mgmt-card,
     .dark-theme .pc-modal,
@@ -621,7 +695,13 @@ $nav_admin_active = 'software';
     .dark-theme .sw-add-form,
     .dark-theme .sw-filter-bar { border-color: rgba(255,255,255,0.03) !important; }
     .dark-theme .sw-add-form select, .dark-theme .sw-add-form input,
-    .dark-theme .pc-lab-select { background: transparent !important; color: var(--ds-text) !important; border-color: rgba(255,255,255,0.04) !important; }
+    .dark-theme .pc-lab-select {
+      /* use a subtle dark panel background so dropdowns are readable (not fully transparent) */
+      background: rgba(255,255,255,0.03) !important;
+      color: var(--ds-text) !important;
+      border-color: rgba(255,255,255,0.04) !important;
+      -webkit-appearance: none; appearance: none;
+    }
     .dark-theme .sw-table th { background: rgba(255,255,255,0.02) !important; color: var(--ds-text) !important; }
     .dark-theme .sw-table td { background: transparent !important; color: var(--ds-text) !important; border-bottom-color: rgba(255,255,255,0.03) !important; }
 
@@ -648,8 +728,8 @@ $nav_admin_active = 'software';
     /* Badges and labels */
     .dark-theme .lab-badge { background: rgba(74,163,255,0.08) !important; color: var(--ds-text) !important; border: 1px solid rgba(255,255,255,0.02) !important; }
 
-    /* make theme changes smooth */
-    .dark-theme * { transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease; }
+  /* make theme changes smooth */
+  .dark-theme * { transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease; }
   </style>
 </head>
 <body class="admin-page" style="display:flex;flex-direction:column;min-height:100vh;">
@@ -869,9 +949,9 @@ $nav_admin_active = 'software';
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
         <div style="font-weight:800;color:#0a4d8c;">PC Software — <span id="pcSwTitle"></span></div>
         <div style="display:flex;gap:8px;align-items:center;">
-          <button onclick="assignAllLabSoftwareToPc()" style="background:#0a74ff;color:white;border:none;padding:6px 10px;border-radius:8px;">Assign all</button>
-          <button onclick="unassignAllLabSoftwareFromPc()" style="background:#f97316;color:white;border:none;padding:6px 10px;border-radius:8px;">Unassign all</button>
-          <button onclick="closePcSwModal()" style="background:#f0f4f8;border:1px solid #e2e8f0;padding:6px 10px;border-radius:8px;">Close</button>
+          <button class="primary-btn" onclick="assignAllLabSoftwareToPc()" style="background:#0a74ff;color:white;border:none;padding:6px 10px;border-radius:8px;">Assign all</button>
+          <button class="primary-btn" onclick="unassignAllLabSoftwareFromPc()" style="background:#f97316;color:white;border:none;padding:6px 10px;border-radius:8px;">Unassign all</button>
+          <button class="neutral-btn" onclick="closePcSwModal()" style="background:#f0f4f8;border:1px solid #e2e8f0;padding:6px 10px;border-radius:8px;">Close</button>
         </div>
       </div>
   <div style="display:flex;gap:12px;pointer-events:auto;">
@@ -899,7 +979,7 @@ $nav_admin_active = 'software';
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
         <div style="font-weight:800;color:#0a4d8c;">Assign Software to Selected PCs — <span id="bulkAssignTitle"></span></div>
         <div>
-          <button onclick="closeBulkAssignModal()" style="background:#f0f4f8;border:1px solid #e2e8f0;padding:6px 10px;border-radius:8px;">Close</button>
+          <button class="neutral-btn" onclick="closeBulkAssignModal()" style="background:#f0f4f8;border:1px solid #e2e8f0;padding:6px 10px;border-radius:8px;">Close</button>
         </div>
       </div>
       <div style="display:flex;gap:12px;">
@@ -913,20 +993,18 @@ $nav_admin_active = 'software';
         </div>
       </div>
       <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end;">
-        <button type="button" onclick="applyAssignToSelected()" style="padding:8px 12px;border-radius:8px;border:none;background:#16a34a;color:white;">Apply to Selected</button>
-        <button type="button" onclick="closeBulkAssignModal()" style="padding:8px 12px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;">Cancel</button>
+  <button type="button" class="primary-btn" onclick="applyAssignToSelected()" style="padding:8px 12px;border-radius:8px;border:none;background:#16a34a;color:white;">Apply to Selected</button>
+  <button type="button" class="neutral-btn" onclick="closeBulkAssignModal()" style="padding:8px 12px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;">Cancel</button>
       </div>
     </div>
   </div>
 </div>
 
-<script>
-
-<!-- Strong final dark-mode overrides (ensures inline-styled panels get themed) -->
 <style>
+  /* Strong final dark-mode overrides (ensures inline-styled panels get themed) */
   html.dark-theme, .dark-theme {
     background: #0b1220 !important;
-    color: #dbeafe !important;
+    color: #ffffff !important;
   }
   html.dark-theme body.admin-page, html.dark-theme .admin-main { background: #0b1220 !important; }
   html.dark-theme .admin-card, html.dark-theme .pc-mgmt-card, html.dark-theme .pc-modal,
@@ -934,16 +1012,79 @@ $nav_admin_active = 'software';
   html.dark-theme .sw-add-form, html.dark-theme .sw-filter-bar,
   html.dark-theme .sw-table, html.dark-theme .pc-ctx-menu {
     background: #0f1724 !important;
-    color: #dbeafe !important;
+    color: #ffffff !important; /* ensure pure white text for high contrast */
     border-color: rgba(255,255,255,0.04) !important;
   }
+
+  /* Ensure selects and inputs on admin page are solid and readable */
+  html.dark-theme select,
+  html.dark-theme #swLab,
+  html.dark-theme .sw-add-form select,
+  html.dark-theme .pc-lab-select,
+  html.dark-theme .sw-add-form input {
+    background: rgba(255,255,255,0.03) !important;
+    color: #ffffff !important;
+    border-color: rgba(255,255,255,0.04) !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    padding-right: 36px !important;
+  }
+
+  /* Option list colors (where browsers allow styling) */
+  html.dark-theme select option {
+    background: #0f1724 !important;
+    color: #ffffff !important;
+  }
+
+  /* Add white arrow for select controls on admin page (SVG data URI) */
+  html.dark-theme select,
+  html.dark-theme #swLab,
+  html.dark-theme .sw-add-form select,
+  html.dark-theme .pc-lab-select {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 10px center !important;
+  }
+
   html.dark-theme .pc-grid, html.dark-theme .pc-legend, html.dark-theme .pc-stat-box { background: transparent !important; }
   html.dark-theme .pc-tile { background-clip: padding-box !important; }
   html.dark-theme .pc-tile.available { background: rgba(74,163,255,0.03) !important; }
-  html.dark-theme .lab-badge { background: rgba(255,255,255,0.02) !important; color: #dbeafe !important; }
+  html.dark-theme .pc-tile.disabled { background: rgba(220,38,38,0.06) !important; color: #ffc7c7 !important; border-color: rgba(220,38,38,0.12) !important; }
+  /* Ensure the Set Available action button is green and clear in dark mode */
+  html.dark-theme .pc-act-btn.avail { background: #16a34a !important; color: #ffffff !important; box-shadow: 0 6px 14px rgba(22,163,74,0.14) !important; }
+  /* Ensure the Set Disabled action button is red and clear in dark mode */
+  html.dark-theme .pc-act-btn.dis { background: #dc2626 !important; color: #ffffff !important; box-shadow: 0 6px 14px rgba(220,38,38,0.12) !important; }
+  html.dark-theme .lab-badge { background: rgba(255,255,255,0.02) !important; color: #ffffff !important; }
   html.dark-theme .del-btn { background: rgba(220,38,38,0.06) !important; color: #ffb4b4 !important; }
   html.dark-theme button { color: inherit !important; }
+  /* Make disable lab button text explicitly red for readability */
+  html.dark-theme .lab-btn.disable { background: rgba(220,38,38,0.06) !important; color: #ff6b6b !important; border-color: rgba(220,38,38,0.12) !important; }
+
+  /* Select-mode cancel button: make background slightly light and text dark so it stands out */
+  html.dark-theme .pc-sel-btn.cancel {
+    background: rgba(255,255,255,0.08) !important;
+    color: #0b1220 !important;
+    border-color: rgba(255,255,255,0.06) !important;
+  }
+
+  /* Modal (pcSwModal / bulkAssignModal) — ensure neutral buttons (Close/Done/Cancel) are visible in dark mode */
+  html.dark-theme #pcSwModal .pc-modal button,
+  html.dark-theme #bulkAssignModal button {
+    /* neutral default: slightly light background with dark text for contrast */
+    background: rgba(255,255,255,0.06) !important;
+    color: #0b1220 !important;
+    border-color: rgba(255,255,255,0.06) !important;
+  }
+  /* Preserve colored action buttons (Assign all / Unassign all / Apply) with white text */
+  html.dark-theme #pcSwModal .pc-modal button[onclick*="assignAllLabSoftwareToPc"],
+  html.dark-theme #pcSwModal .pc-modal button[onclick*="unassignAllLabSoftwareFromPc"],
+  html.dark-theme #bulkAssignModal button[onclick*="applyAssignToSelected"],
+  html.dark-theme #pcSwModal .pc-modal button[onclick*="assignAllLabSoftwareToPc"] {
+    color: #ffffff !important;
+  }
 </style>
+<script>
+console.log('AdminSoftware JS loaded');
 const LAB_ROOMS = <?= json_encode($lab_rooms) ?>;
 let currentLab   = <?= json_encode($pc_lab) ?>;
 let pcStatuses   = <?= json_encode($pc_states) ?>;
@@ -1204,6 +1345,11 @@ function openPcSoftwareModal(lab, pc) {
       return;
     }
     // server returns { ok: true, pc_rows: [...], lab_rows: [...] }
+    // If this PC is disabled, show notice and render but disable controls
+    const status = pcStatuses[pc] || null;
+    if (status === 'disabled') {
+      r._pc_disabled = true;
+    }
     renderPcSoftware(r);
   }).catch(() => {
     document.getElementById('pcSwList').innerHTML = '<div style="color:#dc2626;padding:12px">Network error.</div>';
@@ -1223,6 +1369,9 @@ function renderPcSoftware(data) {
 
   // PC assigned software
   container.innerHTML = '';
+  if (data._pc_disabled) {
+    container.innerHTML = '<div style="color:#dc2626;padding:12px">This PC is disabled. Software cannot be changed.</div>';
+  }
   if (pcRows.length === 0) {
     container.innerHTML = '<div style="color:#9aa5b4;padding:12px">No software assigned to this PC.</div>';
   } else {
@@ -1238,6 +1387,8 @@ function renderPcSoftware(data) {
       if (r.is_enabled == 1) { btn.style.background = '#16a34a'; btn.style.color = 'white'; }
       else { btn.style.background = '#f8d7da'; btn.style.color = '#902026'; }
       btn.onclick = function() {
+        // If PC is disabled, prevent toggling
+        if (data._pc_disabled) { showToast('✕ PC disabled — cannot change software'); return; }
         const newVal = r.is_enabled == 1 ? 0 : 1;
         post({ action: 'toggle_pc_software', lab_room: pcSwCurrent.lab, pc_number: pcSwCurrent.pc, software: r.software, is_enabled: newVal }).then(resp => {
           if (resp && resp.ok) {
@@ -1251,6 +1402,7 @@ function renderPcSoftware(data) {
           }
         }).catch(() => showToast('✕ Network error'));
       };
+      if (data._pc_disabled) btn.disabled = true;
       item.appendChild(left);
       item.appendChild(btn);
       container.appendChild(item);
@@ -1260,7 +1412,36 @@ function renderPcSoftware(data) {
   // Lab software (assign/unassign)
   labContainer.innerHTML = '';
   if (labRows.length === 0) {
-    labContainer.innerHTML = '<div style="color:#9aa5b4;padding:12px">No software available for this lab.</div>';
+    labContainer.innerHTML = '<div style="color:#9aa5b4;padding:12px">No software available for this lab. Loading global list…</div>';
+    // fetch global fallback and render it
+    post({ action: 'get_global_software' }).then(gresp => {
+      if (!gresp || !gresp.ok || !gresp.global_rows || gresp.global_rows.length === 0) {
+        labContainer.innerHTML = '<div style="color:#9aa5b4;padding:12px">No software available for this lab.</div>';
+        return;
+      }
+      // treat global_rows like labRows
+      labRows = gresp.global_rows.map(r => ({ id: null, software: r.software, description: r.description || '' }));
+      // continue to render below
+      labContainer.innerHTML = '';
+      labRows.forEach(l => {
+        const row = document.createElement('div');
+        row.style.display = 'flex'; row.style.alignItems = 'center'; row.style.justifyContent = 'space-between';
+        row.style.padding = '6px 4px';
+        const lbl = document.createElement('div'); lbl.textContent = l.software; lbl.style.flex = '1';
+        const cb = document.createElement('input'); cb.type = 'checkbox'; cb.style.width = '18px'; cb.style.height = '18px';
+        const assigned2 = pcRows.some(p => p.software === l.software);
+        cb.checked = assigned2;
+        cb.onchange = function() {
+          post({ action: 'assign_pc_software', lab_room: pcSwCurrent.lab, pc_number: pcSwCurrent.pc, software: l.software, assign: cb.checked ? 1 : 0 }).then(resp => {
+            if (resp && resp.ok) { showToast('✓ ' + (cb.checked ? 'Assigned' : 'Unassigned')); post({ action: 'get_pc_software', lab_room: pcSwCurrent.lab, pc_number: pcSwCurrent.pc }).then(rr => { if (rr && rr.ok) renderPcSoftware(rr); }); }
+            else { showToast('✕ Could not change assignment'); cb.checked = !cb.checked; }
+          }).catch(() => { showToast('✕ Network error'); cb.checked = !cb.checked; });
+        };
+        row.appendChild(lbl);
+        row.appendChild(cb);
+        labContainer.appendChild(row);
+      });
+    }).catch(()=>{ labContainer.innerHTML = '<div style="color:#dc2626;padding:12px">Network error loading global list.</div>'; });
   } else {
     labRows.forEach(l => {
       const row = document.createElement('div');
