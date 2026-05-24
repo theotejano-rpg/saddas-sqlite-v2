@@ -113,6 +113,11 @@ $unread_count = $db->query("SELECT COUNT(*) FROM notifications WHERE is_read = 0
       <span class="tooltip">View Sit-in Records</span>
     </a>
 
+    <a href="AdminHistory.php" class="admin-icon-btn <?= $nav_admin_active==='history' ? 'active':'' ?>">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span class="tooltip">Sit-In History</span>
+    </a>
+
     <a href="AdminReports.php" class="admin-icon-btn <?= $nav_admin_active==='reports' ? 'active':'' ?>">
       <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       <span class="tooltip">Sit-in Reports</span>
@@ -299,7 +304,13 @@ html.dark-theme .site-nav, html.dark-theme .site-nav * { backdrop-filter: none !
 .dark-theme .admin-icon-btn:hover, .dark-theme .sn-icon-btn:hover { background: rgba(255,255,255,0.06); }
 .dark-theme .notif-dropdown { background: var(--dark-panel); color: var(--text-soft); border-color: rgba(255,255,255,0.03); box-shadow: 0 10px 30px rgba(2,6,23,0.6); }
 .dark-theme .notif-item { border-bottom-color: rgba(255,255,255,0.02); }
+.dark-theme .notif-item:hover { background: rgba(255,255,255,0.03); }
 .dark-theme .notif-item.unread { background: rgba(74,163,255,0.06); }
+.dark-theme .notif-item-text { color: #ffffff !important; }
+.dark-theme .notif-item-time { color: #9aa5b4 !important; }
+.dark-theme .notif-empty { color: #9aa5b4 !important; }
+.dark-theme .notif-dropdown-header { color: #93c5fd !important; border-bottom-color: rgba(255,255,255,0.04) !important; }
+.dark-theme .notif-mark-all { color: #93c5fd !important; }
 .dark-theme .notif-badge { background: #ff6b6b; border: 2px solid var(--dark-bg); color: white; }
 .theme-toggle svg { display: block; }
 </style>

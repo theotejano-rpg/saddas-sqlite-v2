@@ -42,6 +42,69 @@ $nav_admin_active = 'home';
   <link rel="stylesheet" href="../css/Style.css"/>
   <link rel="stylesheet" href="../css/Admin.css"/>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <style>
+    body.admin-page a { text-decoration: none !important; }
+
+    /* ── Dark theme (matches AdminSoftware) ── */
+    :root {
+      --ds-bg: #0b1220; --ds-surface: #0f1724; --ds-panel: #0c1622;
+      --ds-muted: #9aa5b4; --ds-text: #ffffff;
+      --ds-border: rgba(255,255,255,0.04); --accent-soft: rgba(74,163,255,0.06);
+    }
+    html.dark-theme, .dark-theme { background-color: var(--ds-bg) !important; color: var(--ds-text) !important; }
+    .dark-theme .admin-main { background: transparent; color: var(--ds-text); }
+
+    /* Stat cards */
+    .dark-theme .stat-card {
+      background: rgba(255,255,255,0.02) !important;
+      border-color: rgba(255,255,255,0.04) !important;
+      box-shadow: 0 4px 20px rgba(2,6,23,0.5) !important;
+      backdrop-filter: none !important;
+    }
+    .dark-theme .stat-label { color: var(--ds-muted) !important; }
+    .dark-theme .stat-value { color: var(--ds-text) !important; }
+    .dark-theme .stat-icon.blue   { background: rgba(10,77,140,0.18) !important;  color: #93c5fd !important; }
+    .dark-theme .stat-icon.green  { background: rgba(34,197,94,0.14) !important;  color: #86efac !important; }
+    .dark-theme .stat-icon.violet { background: rgba(139,92,246,0.14) !important; color: #c4b5fd !important; }
+    .dark-theme .stat-icon.gold   { background: rgba(232,160,32,0.14) !important; color: #fbbf24 !important; }
+
+    /* Admin cards */
+    .dark-theme .admin-card {
+      background: linear-gradient(180deg, var(--ds-panel), var(--ds-surface)) !important;
+      border-color: var(--ds-border) !important;
+      box-shadow: 0 8px 30px rgba(2,6,23,0.6) !important;
+      backdrop-filter: none !important;
+    }
+
+    /* Announcement form */
+    .dark-theme .ann-form input[type="text"],
+    .dark-theme .ann-form textarea,
+    .dark-theme .ann-form select {
+      background: rgba(255,255,255,0.04) !important;
+      border-color: rgba(255,255,255,0.07) !important;
+      color: var(--ds-text) !important;
+    }
+    .dark-theme .ann-form input::placeholder,
+    .dark-theme .ann-form textarea::placeholder { color: rgba(255,255,255,0.28) !important; }
+    .dark-theme .ann-form input:focus,
+    .dark-theme .ann-form textarea:focus,
+    .dark-theme .ann-form select:focus { border-color: rgba(74,163,255,0.35) !important; box-shadow: 0 0 0 3px rgba(74,163,255,0.08) !important; }
+
+    /* Announcement list */
+    .dark-theme .ann-posted-title { color: var(--ds-text) !important; }
+    .dark-theme .ann-item { border-bottom-color: rgba(255,255,255,0.04) !important; }
+    .dark-theme .ann-item-meta { color: var(--ds-muted) !important; }
+    .dark-theme .ann-item-body { color: var(--ds-text) !important; }
+
+    /* Alert */
+    .dark-theme .admin-alert.success { background: rgba(34,197,94,0.1) !important; border-color: rgba(34,197,94,0.2) !important; color: #86efac !important; }
+
+    /* Chart legend */
+    .dark-theme canvas { filter: none; }
+
+    /* Smooth transitions */
+    .dark-theme * { transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease; }
+  </style>
 </head>
 <body class="admin-page">
 
@@ -145,10 +208,20 @@ $nav_admin_active = 'home';
 const labels = <?= json_encode(array_column($purpose_data,'purpose')) ?>;
 const values = <?= json_encode(array_column($purpose_data,'cnt')) ?>;
 const colors = ['#1877c9','#e74c3c','#6b21c8','#e8a020','#27ae60','#5aadea','#9b59e8','#f39c12'];
+const isDark = document.documentElement.classList.contains('dark-theme');
+const legendColor = isDark ? '#ffffff' : '#12243a';
 new Chart(document.getElementById('purposeChart'), {
   type: 'pie',
-  data: { labels: labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }] },
-  options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { font: { family:'DM Sans', size:11 }, padding:12 } } } }
+  data: { labels: labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: isDark ? 1 : 2, borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#fff' }] },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: { font: { family:'DM Sans', size:11 }, padding:12, color: legendColor }
+      }
+    }
+  }
 });
 <?php endif; ?>
 </script>

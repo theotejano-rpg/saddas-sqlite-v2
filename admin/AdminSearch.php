@@ -215,6 +215,196 @@ $nav_admin_active = 'search';
       .search-layout { grid-template-columns: 1fr; }
     }
   </style>
+  <style>
+    /* ── Shared dark theme (matches AdminSoftware design) ── */
+    :root {
+      --ds-bg: #0b1220; --ds-surface: #0f1724; --ds-panel: #0c1622;
+      --ds-muted: #9aa5b4; --ds-text: #ffffff;
+      --ds-border: rgba(255,255,255,0.04); --accent-soft: rgba(74,163,255,0.06);
+    }
+    html.dark-theme, .dark-theme {
+      background-color: var(--ds-bg) !important;
+      color: var(--ds-text) !important;
+    }
+    .dark-theme .admin-main { background: transparent; color: var(--ds-text); }
+
+    /* Cards */
+    .dark-theme .admin-card,
+    .dark-theme .mini-card,
+    .dark-theme .fb-stat,
+    .dark-theme .report-stat,
+    .dark-theme .profile-result-card,
+    .dark-theme .modal-box,
+    .dark-theme .pc-modal,
+    .dark-theme .at-table,
+    .dark-theme .at-empty {
+      background: linear-gradient(180deg, var(--ds-panel), var(--ds-surface)) !important;
+      color: var(--ds-text) !important;
+      border-color: var(--ds-border) !important;
+      box-shadow: 0 8px 30px rgba(2,6,23,0.6) !important;
+    }
+
+    /* All table headers */
+    .dark-theme .records-table th,
+    .dark-theme .res-table th,
+    .dark-theme .sitin-table th,
+    .dark-theme .pending-mini-table th,
+    .dark-theme .history-table th,
+    .dark-theme .fb-table th,
+    .dark-theme .at-table th {
+      background: rgba(255,255,255,0.03) !important;
+      color: var(--ds-text) !important;
+      border-bottom-color: rgba(255,255,255,0.04) !important;
+    }
+
+    /* All table cells */
+    .dark-theme .records-table td,
+    .dark-theme .res-table td,
+    .dark-theme .sitin-table td,
+    .dark-theme .pending-mini-table td,
+    .dark-theme .history-table td,
+    .dark-theme .fb-table td,
+    .dark-theme .at-table td {
+      background: transparent !important;
+      color: var(--ds-text) !important;
+      border-bottom-color: rgba(255,255,255,0.03) !important;
+    }
+
+    /* Table row hover */
+    .dark-theme .records-table tr:hover td,
+    .dark-theme .res-table tr:hover td,
+    .dark-theme .sitin-table tr:hover td,
+    .dark-theme .pending-mini-table tr:hover td,
+    .dark-theme .history-table tr:hover td,
+    .dark-theme .fb-table tr:hover td,
+    .dark-theme .at-table tr:hover td {
+      background: rgba(255,255,255,0.02) !important;
+    }
+
+    /* Toolbars / filter bars */
+    .dark-theme .records-toolbar,
+    .dark-theme .res-toolbar,
+    .dark-theme .inline-search-wrap,
+    .dark-theme .history-toolbar,
+    .dark-theme .fb-filter-bar,
+    .dark-theme .sw-filter-bar,
+    .dark-theme .sw-add-form {
+      border-color: rgba(255,255,255,0.03) !important;
+    }
+
+    /* All inputs / selects */
+    .dark-theme input,
+    .dark-theme select,
+    .dark-theme textarea {
+      background: rgba(255,255,255,0.04) !important;
+      color: var(--ds-text) !important;
+      border-color: rgba(255,255,255,0.07) !important;
+    }
+    .dark-theme input::placeholder { color: rgba(255,255,255,0.3) !important; }
+    .dark-theme input:focus,
+    .dark-theme select:focus {
+      border-color: rgba(74,163,255,0.35) !important;
+      outline: none;
+    }
+
+    /* Stat numbers/labels */
+    .dark-theme .report-stat-num,
+    .dark-theme .fb-stat-num { color: var(--ds-text) !important; }
+    .dark-theme .report-stat-label,
+    .dark-theme .fb-stat-label,
+    .dark-theme .records-toolbar label,
+    .dark-theme .res-toolbar label,
+    .dark-theme .inline-search-wrap label { color: var(--ds-muted) !important; }
+
+    /* Student cards */
+    .dark-theme .student-card {
+      background: rgba(255,255,255,0.02) !important;
+      border-color: rgba(255,255,255,0.04) !important;
+      color: var(--ds-text) !important;
+      box-shadow: 0 2px 10px rgba(2,6,23,0.4) !important;
+    }
+    .dark-theme .student-card:hover {
+      background: rgba(255,255,255,0.04) !important;
+      box-shadow: 0 6px 20px rgba(2,6,23,0.5) !important;
+    }
+
+    /* Mini cards (Sitin) */
+    .dark-theme .mini-card {
+      background: rgba(255,255,255,0.02) !important;
+      border-color: rgba(255,255,255,0.04) !important;
+    }
+
+    /* Modal */
+    .dark-theme .modal-box {
+      background: var(--ds-surface) !important;
+      border: 1px solid rgba(255,255,255,0.04) !important;
+    }
+    .dark-theme .modal-body { background: var(--ds-surface) !important; color: var(--ds-text) !important; }
+    .dark-theme .modal-info-box {
+      background: rgba(74,163,255,0.05) !important;
+      border-color: rgba(74,163,255,0.1) !important;
+      color: var(--ds-text) !important;
+    }
+    .dark-theme .modal-feedback-text {
+      background: rgba(255,255,255,0.03) !important;
+      border-color: rgba(255,255,255,0.06) !important;
+      color: var(--ds-text) !important;
+    }
+    .dark-theme .modal-footer { background: var(--ds-surface) !important; }
+    .dark-theme .modal-close-btn {
+      background: transparent !important;
+      border-color: rgba(255,255,255,0.08) !important;
+      color: var(--ds-muted) !important;
+    }
+    .dark-theme .modal-close-btn:hover { background: rgba(255,255,255,0.04) !important; }
+
+    /* Search page */
+    .dark-theme .search-hint {
+      background: rgba(74,163,255,0.04) !important;
+      border-color: rgba(74,163,255,0.1) !important;
+      color: var(--ds-muted) !important;
+    }
+    .dark-theme .profile-result-card { overflow: hidden; }
+    .dark-theme .profile-result-details { background: var(--ds-surface) !important; color: var(--ds-text) !important; }
+    .dark-theme .profile-detail-row { border-color: rgba(255,255,255,0.03) !important; color: var(--ds-text) !important; }
+
+    /* Initiate student info (Sitin) */
+    .dark-theme .initiate-student-info {
+      background: rgba(74,163,255,0.04) !important;
+      border-color: rgba(74,163,255,0.08) !important;
+    }
+    .dark-theme .initiate-student-name { color: var(--ds-text) !important; }
+    .dark-theme .initiate-student-meta { color: var(--ds-muted) !important; }
+    .dark-theme .initiate-form-row select { background: rgba(255,255,255,0.03) !important; color: var(--ds-text) !important; border-color: rgba(255,255,255,0.06) !important; }
+
+    /* Badges (keep color but adjust bg opacity for dark) */
+    .dark-theme .badge-pending,  .dark-theme .status-badge.pending  { background: rgba(232,160,32,0.18) !important; color: #fbbf24 !important; }
+    .dark-theme .badge-active,   .dark-theme .status-badge.approved { background: rgba(34,197,94,0.15) !important; color: #86efac !important; }
+    .dark-theme .badge-completed { background: rgba(74,163,255,0.12) !important; color: #93c5fd !important; }
+    .dark-theme .badge-cancelled, .dark-theme .status-badge.rejected { background: rgba(220,38,38,0.15) !important; color: #fca5a5 !important; }
+
+    /* Action buttons */
+    .dark-theme .at-action-btn.approve { background: rgba(34,197,94,0.12) !important; color: #86efac !important; }
+    .dark-theme .at-action-btn.reject  { background: rgba(220,38,38,0.1) !important; color: #fca5a5 !important; }
+    .dark-theme .feedback-view-btn { background: rgba(74,163,255,0.08) !important; color: #93c5fd !important; border-color: rgba(74,163,255,0.12) !important; }
+
+    /* Fb filter submit */
+    .dark-theme .fb-filter-submit { background: #1877c9 !important; }
+    .dark-theme .fb-filter-reset { border-color: rgba(255,255,255,0.08) !important; color: var(--ds-muted) !important; }
+
+    /* Section headings / eyebrows */
+    .dark-theme .at-section-title { color: var(--ds-text) !important; }
+    .dark-theme .at-section-sub { color: var(--ds-muted) !important; }
+
+    /* Divider */
+    .dark-theme .divider-line { border-color: rgba(255,255,255,0.04) !important; }
+
+    /* Toast */
+    .dark-theme .toast-fixed { background: rgba(255,255,255,0.06) !important; color: var(--ds-text) !important; box-shadow: 0 6px 24px rgba(2,6,23,0.6) !important; }
+
+    /* Smooth transitions */
+    .dark-theme * { transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease; }
+  </style>
 </head>
 <body class="admin-page" style="display:flex;flex-direction:column;min-height:100vh;">
 <?php include __DIR__ . '/nav_admin.php'; ?>

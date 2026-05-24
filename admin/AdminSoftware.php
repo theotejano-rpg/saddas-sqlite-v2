@@ -381,17 +381,15 @@ $nav_admin_active = 'software';
 
     /* Lab enable/disable grid */
     .lab-toggle-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
       gap: 14px; padding: 20px;
     }
     .lab-toggle-card {
       display: flex; align-items: center; justify-content: space-between;
-      gap: 10px;
-      padding: 14px 16px; border-radius: 12px;
+      gap: 12px;
+      padding: 14px 16px 14px 26px; border-radius: 12px;
       border: 1.5px solid rgba(204,222,237,0.6);
       background: white; min-width: 0; position: relative; overflow: hidden;
-      /* extra left padding to make room for the accent bar */
-      padding-left: 22px;
       transition: border-color 0.3s, background 0.3s, transform 0.12s;
     }
     /* accent bar on the left as a rounded pseudo-element (keeps rounded corners) */
@@ -405,15 +403,15 @@ $nav_admin_active = 'software';
     .lab-toggle-card.lab-disabled { background: rgba(220,38,38,0.03); }
     .lab-toggle-card.lab-disabled::before { background: #dc2626; box-shadow: 0 2px 8px rgba(220,38,38,0.06); }
     .lab-toggle-card:hover { transform: translateY(-3px); }
-    .lab-toggle-info { min-width: 0; flex: 1; }
-    .lab-toggle-name { font-weight: 700; font-size: 0.92rem; color: #1a2535; white-space: nowrap; }
-    .lab-toggle-state { font-size: 0.75rem; font-weight: 600; margin-top: 3px; white-space: nowrap; }
+    .lab-toggle-info { min-width: 0; flex: 1; overflow: hidden; }
+    .lab-toggle-name { font-weight: 700; font-size: 0.92rem; color: #1a2535; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lab-toggle-state { font-size: 0.75rem; font-weight: 600; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .lab-toggle-state.state-enabled  { color: #16a34a; }
     .lab-toggle-state.state-disabled { color: #dc2626; }
     .lab-btns { display: flex; gap: 6px; flex-shrink: 0; }
     .lab-btn {
-      padding: 8px 18px; border-radius: 8px; border: 2px solid transparent;
-      font-size: 0.8rem; font-weight: 700; cursor: pointer;
+      padding: 6px 14px; border-radius: 8px; border: 2px solid transparent;
+      font-size: 0.78rem; font-weight: 700; cursor: pointer;
       transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease, background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
       white-space: nowrap; opacity: 1; -webkit-tap-highlight-color: transparent;
     }
@@ -1090,6 +1088,10 @@ $nav_admin_active = 'software';
   html.dark-theme button { color: inherit !important; }
   /* Make disable lab button text explicitly red for readability */
   html.dark-theme .lab-btn.disable { background: rgba(220,38,38,0.06) !important; color: #ff6b6b !important; border-color: rgba(220,38,38,0.12) !important; }
+  html.dark-theme .lab-btn.enable:not(.active-state) { background: rgba(134,239,172,0.06) !important; color: #86efac !important; border-color: rgba(134,239,172,0.2) !important; }
+  /* Active-state buttons must keep their solid fill in dark mode — prevent the generic button color:inherit from washing them out */
+  html.dark-theme .lab-btn.enable.active-state { background: #86efac !important; color: #14532d !important; border-color: #86efac !important; box-shadow: 0 4px 14px rgba(134,239,172,0.18) !important; }
+  html.dark-theme .lab-btn.disable.active-state { background: #dc2626 !important; color: #ffffff !important; border-color: #dc2626 !important; box-shadow: 0 4px 14px rgba(220,38,38,0.18) !important; }
 
   /* Select-mode cancel button: make background slightly light and text dark so it stands out */
   html.dark-theme .pc-sel-btn.cancel {
