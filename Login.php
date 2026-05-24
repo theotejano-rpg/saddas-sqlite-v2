@@ -79,7 +79,63 @@ $role_selected = $old['role'] ?? 'student';
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>UC CCS &mdash; Sign In</title>
+  <script>
+    (function(){ try { if(localStorage.getItem('saddas_theme')==='dark') document.documentElement.classList.add('dark-theme'); } catch(e){} })();
+  </script>
   <link rel="stylesheet" href="css/Style.css"/>
+  <style>
+    html.dark-theme body.auth { background: #071026 !important; }
+    html.dark-theme .site-nav { background: #0f1724 !important; border-bottom: 1px solid rgba(255,255,255,0.05) !important; backdrop-filter: none !important; }
+    html.dark-theme .nav-left-text strong { color: #ffffff !important; }
+    html.dark-theme .nav-left-text small  { color: #9aa5b4 !important; }
+    html.dark-theme .nav-link    { color: #ffffff !important; }
+    html.dark-theme .nav-btn.ghost { color: #ffffff !important; border-color: rgba(255,255,255,0.2) !important; background: transparent !important; }
+    html.dark-theme .nav-btn.solid { background: #6b21c8 !important; color: #ffffff !important; }
+    html.dark-theme .auth-card {
+      background: #0f1724 !important;
+      border-color: rgba(255,255,255,0.06) !important;
+      box-shadow: 0 20px 60px rgba(2,6,23,0.7) !important;
+    }
+    html.dark-theme .auth-left  { background: #0f1724 !important; }
+    html.dark-theme .auth-right { background: #0c1520 !important; }
+    html.dark-theme .auth-tagline  { color: #9aa5b4 !important; }
+    html.dark-theme .auth-title    { color: #ffffff !important; }
+    html.dark-theme .auth-sub      { color: #9aa5b4 !important; }
+    html.dark-theme .auth-back     { color: #9aa5b4 !important; }
+    html.dark-theme .auth-switch   { color: #9aa5b4 !important; }
+    html.dark-theme .auth-switch a { color: #93c5fd !important; }
+    html.dark-theme .auth-forgot a { color: #93c5fd !important; }
+    html.dark-theme .auth-right-name       { color: #ffffff !important; }
+    html.dark-theme .auth-right-name small { color: #9aa5b4 !important; }
+    html.dark-theme .auth-right-motto      { color: #c084fc !important; }
+    html.dark-theme .auth-right-rule       { background: rgba(255,255,255,0.08) !important; }
+    html.dark-theme .role-toggle { background: rgba(255,255,255,0.04) !important; }
+    html.dark-theme .role-btn { color: #9aa5b4 !important; }
+    html.dark-theme .role-btn.active { background: rgba(255,255,255,0.08) !important; color: #ffffff !important; box-shadow: none !important; }
+    html.dark-theme .field label { color: #9aa5b4 !important; }
+    html.dark-theme .field input {
+      background: rgba(255,255,255,0.04) !important;
+      border-color: rgba(255,255,255,0.08) !important;
+      color: #ffffff !important;
+    }
+    html.dark-theme .field input::placeholder { color: rgba(255,255,255,0.25) !important; }
+    html.dark-theme .field input:focus { border-color: rgba(74,163,255,0.4) !important; box-shadow: 0 0 0 3px rgba(74,163,255,0.08) !important; }
+    html.dark-theme .pw-toggle { background: transparent !important; color: #9aa5b4 !important; }
+    html.dark-theme .auth-btn { background: #1877c9 !important; color: #ffffff !important; }
+    html.dark-theme footer { background: #0f1724 !important; color: #9aa5b4 !important; border-top-color: rgba(255,255,255,0.04) !important; }
+    /* Landing theme toggle button */
+    .landing-theme-toggle {
+      display: flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px; border-radius: 8px;
+      background: transparent; border: 1.5px solid rgba(10,77,140,0.25);
+      cursor: pointer; color: var(--ink-soft); margin-left: 8px; flex-shrink: 0;
+      transition: background 0.18s, color 0.18s, border-color 0.18s;
+    }
+    .landing-theme-toggle:hover { background: rgba(10,77,140,0.08); color: var(--blue-deep); border-color: var(--blue-deep); }
+    .landing-theme-toggle svg { display: block; }
+    html.dark-theme .landing-theme-toggle { background: transparent !important; border-color: rgba(255,255,255,0.14) !important; color: #ffffff !important; }
+    html.dark-theme .landing-theme-toggle:hover { background: rgba(255,255,255,0.08) !important; }
+  </style>
   <style>
     .role-toggle {
       display: flex;

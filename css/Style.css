@@ -1899,7 +1899,6 @@ canvas#purposeChart { max-height: 220px; }
 
 /* ==========================
    Global dark theme overrides
-   Enable by adding .dark-theme to <html> or <body>
    ========================== */
 html.dark-theme, body.dark-theme {
   --dt-bg: #071026;
@@ -1909,368 +1908,272 @@ html.dark-theme, body.dark-theme {
   --dt-text: #ffffff;
 }
 
-html.dark-theme, body.dark-theme {
-  background: var(--dt-bg) !important;
-  color: var(--dt-text) !important;
+/* Base */
+html.dark-theme { background: var(--dt-bg) !important; color: var(--dt-text) !important; }
+body.dark-theme  { background: var(--dt-bg) !important; color: var(--dt-text) !important; }
+
+/* Kill the landing page gradient background — replace with flat dark */
+body.landing.dark-theme::before,
+html.dark-theme body.landing::before {
+  background: #071026 !important;
+  background-image: none !important;
 }
 
-/* Navigation */
-html.dark-theme .site-nav, body.dark-theme .site-nav,
-html.dark-theme .admin-site, body.dark-theme .admin-site {
+/* Nav */
+html.dark-theme .site-nav,
+body.dark-theme .site-nav {
+  background: #0f1724 !important;
+  border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+  box-shadow: 0 6px 24px rgba(2,6,23,0.6) !important;
+  backdrop-filter: none !important;
+}
+html.dark-theme .nav-left-text strong,
+body.dark-theme .nav-left-text strong { color: #ffffff !important; }
+html.dark-theme .nav-left-text small,
+body.dark-theme .nav-left-text small  { color: #9aa5b4 !important; }
+html.dark-theme .nav-link,
+body.dark-theme .nav-link             { color: #ffffff !important; }
+html.dark-theme .nav-btn.ghost,
+body.dark-theme .nav-btn.ghost {
+  background: transparent !important;
+  color: #ffffff !important;
+  border-color: rgba(255,255,255,0.18) !important;
+}
+html.dark-theme .nav-btn.solid,
+body.dark-theme .nav-btn.solid {
+  background: #6b21c8 !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+}
+
+/* Landing theme toggle button */
+.landing-theme-toggle {
+  display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 8px;
+  background: transparent; border: 1.5px solid rgba(10,77,140,0.25);
+  cursor: pointer; color: var(--ink-soft);
+  margin-left: 8px; flex-shrink: 0;
+  transition: background 0.18s, color 0.18s, border-color 0.18s;
+}
+.landing-theme-toggle:hover { background: rgba(10,77,140,0.08); color: var(--blue-deep); border-color: var(--blue-deep); }
+.landing-theme-toggle svg { display: block; }
+html.dark-theme .landing-theme-toggle { background: transparent !important; border-color: rgba(255,255,255,0.14) !important; color: var(--dt-text) !important; }
+html.dark-theme .landing-theme-toggle:hover { background: rgba(255,255,255,0.08) !important; border-color: rgba(255,255,255,0.3) !important; }
+html.dark-theme .landing-theme-toggle svg { stroke: currentColor !important; fill: none !important; }
+
+/* Hero */
+html.dark-theme .hero, body.dark-theme .hero { background: transparent !important; }
+html.dark-theme .hero-eyebrow, body.dark-theme .hero-eyebrow { color: #93c5fd !important; }
+html.dark-theme .hero-eyebrow::before, body.dark-theme .hero-eyebrow::before { background: #93c5fd !important; }
+html.dark-theme .hero-text h1, body.dark-theme .hero-text h1 { color: #ffffff !important; }
+html.dark-theme .hero-text h1 em, body.dark-theme .hero-text h1 em { color: #c084fc !important; }
+html.dark-theme .hero-text p, body.dark-theme .hero-text p { color: #9aa5b4 !important; }
+html.dark-theme .hero-actions .cta-sub, body.dark-theme .hero-actions .cta-sub { color: #93c5fd !important; }
+html.dark-theme .hero-badge, body.dark-theme .hero-badge {
+  background: rgba(255,255,255,0.04) !important;
+  backdrop-filter: none !important;
+  border-color: rgba(255,255,255,0.08) !important;
+  box-shadow: 0 8px 32px rgba(2,6,23,0.5) !important;
+}
+html.dark-theme .hero-badge .badge-label, body.dark-theme .hero-badge .badge-label { color: #ffffff !important; }
+html.dark-theme .hero-badge .badge-label small, body.dark-theme .hero-badge .badge-label small { color: #9aa5b4 !important; }
+html.dark-theme .hero-badge .badge-divider, body.dark-theme .hero-badge .badge-divider { background: rgba(255,255,255,0.1) !important; }
+html.dark-theme .hero-badge .badge-motto, body.dark-theme .hero-badge .badge-motto { color: #c084fc !important; }
+
+/* Leaderboard */
+html.dark-theme .lb-section      { background: transparent !important; }
+html.dark-theme .lb-heading h2   { color: var(--dt-text) !important; }
+html.dark-theme .lb-heading p    { color: var(--dt-muted) !important; }
+html.dark-theme .lb-card {
+  background: var(--dt-panel) !important;
+  border-color: rgba(255,255,255,0.06) !important;
+  box-shadow: 0 6px 24px rgba(2,6,23,0.5) !important;
+}
+html.dark-theme .lb-card-name        { color: var(--dt-text) !important; }
+html.dark-theme .lb-card-course      { color: var(--dt-muted) !important; }
+html.dark-theme .lb-card-stat-val    { color: #93c5fd !important; }
+html.dark-theme .lb-card-stat-lbl    { color: var(--dt-muted) !important; }
+html.dark-theme .lb-list {
+  background: var(--dt-panel) !important;
+  border-color: rgba(255,255,255,0.04) !important;
+}
+html.dark-theme .lb-list-row         { border-bottom-color: rgba(255,255,255,0.04) !important; }
+html.dark-theme .lb-list-row:hover   { background: rgba(255,255,255,0.03) !important; }
+html.dark-theme .lb-list-name        { color: var(--dt-text) !important; }
+html.dark-theme .lb-list-rank        { color: var(--dt-muted) !important; }
+html.dark-theme .lb-list-course      { color: var(--dt-muted) !important; }
+html.dark-theme .lb-list-sess        { color: var(--dt-muted) !important; }
+html.dark-theme .lb-list-pts         { color: #93c5fd !important; }
+html.dark-theme .lb-empty            { color: var(--dt-muted) !important; }
+
+/* Footer */
+html.dark-theme footer {
+  background: var(--dt-surface) !important;
+  border-top-color: rgba(255,255,255,0.04) !important;
+  color: var(--dt-muted) !important;
+}
+html.dark-theme footer a { color: var(--dt-muted) !important; }
+html.dark-theme footer a:hover { color: var(--dt-text) !important; }
+
+/* Admin nav */
+html.dark-theme .admin-site {
+  background: var(--dt-surface) !important;
+  border-bottom-color: rgba(255,255,255,0.04) !important;
+}
+html.dark-theme .admin-icon-btn { background: transparent !important; color: var(--dt-text) !important; border: none !important; }
+html.dark-theme .admin-icon-btn:hover { background: rgba(255,255,255,0.06) !important; }
+html.dark-theme .admin-icon-btn svg { stroke: currentColor !important; fill: none !important; }
+html.dark-theme .admin-main  { background: transparent !important; color: var(--dt-text) !important; }
+html.dark-theme .admin-card  { color: var(--dt-text) !important; }
+html.dark-theme .modal-box   { color: var(--dt-text) !important; }
+
+/* Student pages */
+html.dark-theme body.student-page { background: var(--dt-bg) !important; }
+
+/* Nav */
+html.dark-theme .site-nav {
   background: var(--dt-surface) !important;
   border-bottom-color: rgba(255,255,255,0.04) !important;
   box-shadow: 0 6px 24px rgba(2,6,23,0.6) !important;
   backdrop-filter: none !important;
 }
 html.dark-theme .nav-left-text strong { color: var(--dt-text) !important; }
-html.dark-theme .nav-left-text small { color: var(--dt-muted) !important; }
-html.dark-theme .nav-link, html.dark-theme .nav-btn, html.dark-theme .admin-icon-btn { color: var(--dt-text) !important; }
+html.dark-theme .nav-left-text small  { color: var(--dt-muted) !important; }
+html.dark-theme .nav-link             { color: var(--dt-text) !important; }
+html.dark-theme .nav-link.active      { color: var(--dt-text) !important; }
 
-/* Force landing/nav small buttons and ghosts to dark surfaces and white text */
-html.dark-theme .nav-right .nav-btn.ghost,
-html.dark-theme .nav-right .nav-btn.solid,
-html.dark-theme .site-nav .nav-right a,
-html.dark-theme .site-nav .nav-right button {
+/* Nav buttons (Login / Register) */
+html.dark-theme .nav-btn.ghost {
   background: transparent !important;
-  background-color: rgba(255,255,255,0.03) !important;
+  color: var(--dt-text) !important;
+  border-color: rgba(255,255,255,0.18) !important;
+}
+html.dark-theme .nav-btn.ghost:hover {
+  background: rgba(255,255,255,0.06) !important;
+  border-color: rgba(255,255,255,0.3) !important;
+}
+html.dark-theme .nav-btn.solid {
+  background: #6b21c8 !important;
   color: #ffffff !important;
-  border-color: rgba(255,255,255,0.04) !important;
+  border-color: transparent !important;
 }
+html.dark-theme .nav-btn.solid:hover { background: #5b18a8 !important; }
 
-/* Remove white rounded squares (if any inline styles applied) */
-html.dark-theme .nav-right a[style], html.dark-theme .nav-right button[style] {
-  background-color: rgba(255,255,255,0.02) !important;
-  color: #ffffff !important;
+/* Landing theme toggle button — matches admin 36×36px icon btn */
+.landing-theme-toggle {
+  display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 8px;
+  background: transparent; border: 1.5px solid rgba(10,77,140,0.25);
+  cursor: pointer; color: var(--ink-soft);
+  margin-left: 8px; flex-shrink: 0;
+  transition: background 0.18s, color 0.18s, border-color 0.18s;
 }
-
-/* Emergency contrast enforcers for landing page and tabs */
-html.dark-theme .hero-text h1,
-html.dark-theme .hero-text h1 em,
-html.dark-theme .hero-text p,
-html.dark-theme .hero-eyebrow,
-html.dark-theme .hero-badge .badge-label,
-html.dark-theme .hero-badge .badge-motto,
-html.dark-theme .lb-heading h2,
-html.dark-theme .lb-heading p,
-html.dark-theme .lb-card-name,
-html.dark-theme .lb-card-course,
-html.dark-theme .lb-card-rank,
-html.dark-theme .lb-card-stat-val,
-html.dark-theme .lb-list-name,
-html.dark-theme .lb-list-course,
-html.dark-theme .lb-list-sess,
-html.dark-theme .lb-list-pts,
-html.dark-theme .lb-list-rank,
-html.dark-theme .nav-link,
-html.dark-theme .nav-right .nav-btn,
-html.dark-theme .nav-right .nav-btn.ghost,
-html.dark-theme .nav-right .nav-btn.solid {
-  color: #ffffff !important;
+.landing-theme-toggle:hover {
+  background: rgba(10,77,140,0.08);
+  color: var(--blue-deep);
+  border-color: var(--blue-deep);
 }
-
-/* Ensure list rows and cards have readable borders and backgrounds */
-html.dark-theme .lb-list-row { border-bottom-color: rgba(255,255,255,0.03) !important; }
-html.dark-theme .lb-card, html.dark-theme .lb-list { background: var(--dt-panel) !important; color: #ffffff !important; border-color: rgba(255,255,255,0.04) !important; }
-
-/* Strong fallback for any inline-styled color attributes inside landing */
-html.dark-theme [style*="color:"] { color: #ffffff !important; }
-
-/* Final fallback: landing-specific enforcement to guarantee contrast */
-body.landing.html.dark-theme, body.landing.dark-theme {
-  color: #ffffff !important;
-}
-body.landing.dark-theme, html.dark-theme body.landing {
-  background: var(--dt-bg) !important;
-}
-/* Force all textual elements in landing to white for contrast */
-body.landing.dark-theme h1,
-body.landing.dark-theme h2,
-body.landing.dark-theme h3,
-body.landing.dark-theme p,
-body.landing.dark-theme a,
-body.landing.dark-theme li,
-body.landing.dark-theme span,
-body.landing.dark-theme small,
-body.landing.dark-theme label,
-body.landing.dark-theme .nav-link,
-body.landing.dark-theme .nav-btn,
-body.landing.dark-theme .hero-eyebrow,
-body.landing.dark-theme .hero-text h1,
-body.landing.dark-theme .hero-text p,
-body.landing.dark-theme .lb-card-name,
-body.landing.dark-theme .lb-card-course,
-body.landing.dark-theme .lb-list-name,
-body.landing.dark-theme .lb-list-course,
-body.landing.dark-theme .lb-list-sess,
-body.landing.dark-theme .lb-list-pts {
-  color: #ffffff !important;
-}
-
-/* SVGs and icon fonts should inherit the white color */
-body.landing.dark-theme svg, body.landing.dark-theme svg * { fill: currentColor !important; stroke: currentColor !important; color: #ffffff !important; }
-
-/* Remove stubborn white backgrounds from nav buttons and small boxes */
-body.landing.dark-theme .nav-right .nav-btn,
-body.landing.dark-theme .nav-right a,
-body.landing.dark-theme .hero-badge,
-body.landing.dark-theme .lb-card,
-body.landing.dark-theme .lb-list {
+.landing-theme-toggle svg { display: block; }
+html.dark-theme .landing-theme-toggle {
   background: transparent !important;
-  background-color: rgba(255,255,255,0.02) !important;
-  border-color: rgba(255,255,255,0.04) !important;
+  border-color: rgba(255,255,255,0.14) !important;
+  color: var(--dt-text) !important;
+}
+html.dark-theme .landing-theme-toggle:hover {
+  background: rgba(255,255,255,0.08) !important;
+  border-color: rgba(255,255,255,0.3) !important;
+}
+html.dark-theme .landing-theme-toggle svg {
+  stroke: currentColor !important;
+  fill: none !important;
 }
 
-/* Any inline background style in landing should be dimmed */
-body.landing.dark-theme [style*="background"] { background-color: rgba(255,255,255,0.02) !important; }
-
-/* Ultra-specific emergency contrast rules - last resort to guarantee readability */
-html.dark-theme body.landing .nav-link,
-body.landing.dark-theme .nav-link,
-html.dark-theme body.landing .nav-right .nav-btn,
-body.landing.dark-theme .nav-right .nav-btn,
-html.dark-theme body.landing .hero-text h1,
-body.landing.dark-theme .hero-text h1,
-html.dark-theme body.landing .hero-text p,
-body.landing.dark-theme .hero-text p,
-html.dark-theme body.landing .lb-card-name,
-body.landing.dark-theme .lb-card-name,
-html.dark-theme body.landing .lb-list-name,
-body.landing.dark-theme .lb-list-name,
-html.dark-theme body.landing .lb-list-course,
-body.landing.dark-theme .lb-list-course {
-  color: #ffffff !important;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.6) !important;
-}
-
-/* Make small nav boxes darker so icons/text pop */
-html.dark-theme body.landing .nav-right .nav-btn.ghost,
-body.landing.dark-theme .nav-right .nav-btn.ghost,
-html.dark-theme body.landing .nav-right a,
-body.landing.dark-theme .nav-right a {
-  background-color: rgba(0,0,0,0.35) !important;
-  color: #ffffff !important;
-  border-color: rgba(255,255,255,0.06) !important;
-}
-
-/* Ensure inline colored spans are visible */
-html.dark-theme body.landing [style*="color:"] {
-  color: #ffffff !important;
-}
-
-/* Landing page-specific dark tweaks */
+/* Hero section */
+html.dark-theme .hero            { background: var(--dt-bg) !important; }
+html.dark-theme .hero-eyebrow    { color: #93c5fd !important; }
 html.dark-theme .hero-text h1,
-html.dark-theme .hero-text p,
-html.dark-theme .hero-eyebrow,
-html.dark-theme .hero-badge .badge-label,
-html.dark-theme .lb-heading h2,
-html.dark-theme .lb-heading p,
-html.dark-theme .lb-card-name,
-html.dark-theme .lb-card-course,
-html.dark-theme .lb-list-name,
-html.dark-theme .lb-list-course,
-html.dark-theme .lb-list-sess,
-html.dark-theme .lb-list-pts {
-  color: #ffffff !important;
-}
-
-html.dark-theme .lb-card, html.dark-theme .lb-list, html.dark-theme .hero-badge {
-  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)) !important;
-  border-color: rgba(255,255,255,0.03) !important;
-}
-
-/* Panels and cards */
-html.dark-theme .admin-card,
-html.dark-theme .pc-mgmt-card,
-html.dark-theme .pc-modal,
-html.dark-theme .auth-card,
-html.dark-theme .feature,
+html.dark-theme .hero-text h1 em { color: var(--dt-text) !important; }
+html.dark-theme .hero-text p     { color: var(--dt-muted) !important; }
 html.dark-theme .hero-badge {
-  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)) !important;
-  border-color: rgba(255,255,255,0.03) !important;
+  background: rgba(255,255,255,0.04) !important;
+  border-color: rgba(255,255,255,0.06) !important;
   color: var(--dt-text) !important;
-  box-shadow: 0 8px 30px rgba(2,6,23,0.6) !important;
 }
-
-/* Tables */
-html.dark-theme .sw-table, html.dark-theme table, html.dark-theme .admin-table {
-  background: transparent !important; color: var(--dt-text) !important;
-}
-html.dark-theme .sw-table th, html.dark-theme .admin-table th { background: rgba(255,255,255,0.02) !important; color: var(--dt-text) !important; }
-html.dark-theme .sw-table td, html.dark-theme .admin-table td { border-bottom-color: rgba(255,255,255,0.03) !important; }
-
-/* Inputs */
-html.dark-theme input,
-html.dark-theme select,
-html.dark-theme textarea,
-html.dark-theme .search-box-wrap input {
-  background: rgba(255,255,255,0.02) !important;
+html.dark-theme .badge-label { color: var(--dt-text) !important; }
+html.dark-theme .badge-motto { color: var(--dt-muted) !important; }
+html.dark-theme .hero-cta .nav-btn.solid { background: #6b21c8 !important; color: #fff !important; }
+html.dark-theme .hero-cta .nav-btn.ghost {
   color: var(--dt-text) !important;
-  border-color: rgba(255,255,255,0.04) !important;
+  border-color: rgba(255,255,255,0.18) !important;
 }
 
-/* Stronger select & option rules to ensure dropdowns are readable in dark mode */
-html.dark-theme select,
-html.dark-theme .sw-add-form select,
-html.dark-theme .pc-lab-select,
-html.dark-theme select.admin-select {
-  background: rgba(255,255,255,0.03) !important; /* subtle dark control */
-  color: var(--dt-text) !important;
-  border-color: rgba(255,255,255,0.04) !important;
-  -webkit-appearance: none !important;
-  appearance: none !important;
-}
-
-/* Options list should also use dark backgrounds where supported */
-html.dark-theme select option {
+/* Leaderboard */
+html.dark-theme .lb-section      { background: var(--dt-bg) !important; }
+html.dark-theme .lb-heading h2   { color: var(--dt-text) !important; }
+html.dark-theme .lb-heading p    { color: var(--dt-muted) !important; }
+html.dark-theme .lb-card {
   background: var(--dt-panel) !important;
-  color: var(--dt-text) !important;
-}
-
-/* Add a white arrow for better visibility in dark mode (SVG data URI) */
-html.dark-theme select,
-html.dark-theme .sw-add-form select,
-html.dark-theme .pc-lab-select {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>") !important;
-  background-repeat: no-repeat !important;
-  background-position: right 10px center !important;
-  padding-right: 36px !important;
-}
-
-/* Improve native dropdown arrow contrast (WebKit/Chromium) */
-html.dark-theme select::-ms-expand { display: block; }
-html.dark-theme select::-ms-expand { color: var(--dt-text) !important; }
-html.dark-theme select::-webkit-calendar-picker-indicator { filter: invert(1) !important; }
-
-/* Firefox focus workaround for select placeholder color */
-html.dark-theme select:-moz-focusring { color: var(--dt-text) !important; }
-
-/* PC tiles */
-html.dark-theme .pc-grid { background: transparent !important; }
-html.dark-theme .pc-tile { background: rgba(255,255,255,0.01) !important; border-color: rgba(255,255,255,0.06) !important; color: var(--dt-text) !important; }
-html.dark-theme .pc-tile.available { background: rgba(34,197,94,0.06) !important; }
-html.dark-theme .pc-tile.disabled { background: rgba(224,53,53,0.06) !important; }
-
-/* Notifications, dropdowns, modals */
-html.dark-theme .pc-ctx-menu, html.dark-theme .notif-dropdown, html.dark-theme .toast-fixed, html.dark-theme .modal-box {
-  background: var(--dt-panel) !important; border-color: rgba(255,255,255,0.03) !important; color: var(--dt-text) !important; box-shadow: 0 10px 30px rgba(2,6,23,0.6) !important;
-}
-html.dark-theme .notif-badge { background: #ff6b6b !important; border: 2px solid var(--dt-bg) !important; color: white !important; }
-html.dark-theme .notif-item.unread { background: rgba(74,163,255,0.06) !important; }
-
-/* Footer */
-html.dark-theme .site-footer { background: transparent !important; border-top-color: rgba(255,255,255,0.03) !important; color: var(--dt-muted) !important; }
-
-/* ==========================
-   Student pages & component dark-mode fixes
-   Ensure reservation, notifications, testimonials and PC modal tiles
-   have dark panels and pure white text for contrast
-   ========================== */
-html.dark-theme .res-card,
-html.dark-theme .res-summary-card,
-html.dark-theme .res-history-list,
-html.dark-theme .res-empty,
-html.dark-theme .res-alert,
-html.dark-theme .res-info-box,
-html.dark-theme .res-view-all,
-html.dark-theme .res-page-header,
-html.dark-theme .res-layout,
-html.dark-theme .res-form-col,
-html.dark-theme .res-history-col {
-  background: var(--dt-panel) !important;
-  color: var(--dt-text) !important;
   border-color: rgba(255,255,255,0.04) !important;
-  box-shadow: 0 8px 30px rgba(2,6,23,0.45) !important;
+  color: var(--dt-text) !important;
 }
+html.dark-theme .lb-card-name    { color: var(--dt-text) !important; }
+html.dark-theme .lb-card-course  { color: var(--dt-muted) !important; }
+html.dark-theme .lb-card-rank    { color: var(--dt-text) !important; }
+html.dark-theme .lb-card-stat-val{ color: var(--dt-text) !important; }
+html.dark-theme .lb-card-stat-label { color: var(--dt-muted) !important; }
+html.dark-theme .lb-list {
+  background: var(--dt-panel) !important;
+  border-color: rgba(255,255,255,0.04) !important;
+}
+html.dark-theme .lb-list-row     { border-bottom-color: rgba(255,255,255,0.03) !important; }
+html.dark-theme .lb-list-rank    { color: var(--dt-muted) !important; }
+html.dark-theme .lb-list-name    { color: var(--dt-text) !important; }
+html.dark-theme .lb-list-course  { color: var(--dt-muted) !important; }
+html.dark-theme .lb-list-sess,
+html.dark-theme .lb-list-pts     { color: var(--dt-text) !important; }
 
-/* PC modal and seats */
-html.dark-theme .pc-modal { background: var(--dt-panel) !important; color: var(--dt-text) !important; }
-html.dark-theme .pc-modal .pc-modal-title,
-html.dark-theme .pc-modal .pc-modal-sub,
-html.dark-theme .pc-modal .pc-legend-item,
-html.dark-theme .pc-legend-dot { color: var(--dt-text) !important; }
-html.dark-theme .pc-sw-panel { background: rgba(255,255,255,0.02) !important; color: var(--dt-text) !important; border-color: rgba(255,255,255,0.03) !important; }
-html.dark-theme .pc-seat { background: rgba(255,255,255,0.02) !important; border-color: rgba(255,255,255,0.06) !important; color: var(--dt-text) !important; }
-html.dark-theme .pc-seat:hover:not(.occupied):not(.disabled-seat) { background: rgba(255,255,255,0.04) !important; }
-html.dark-theme .pc-seat.occupied { background: rgba(224,53,53,0.08) !important; border-color: rgba(224,53,53,0.12) !important; color: #fff !important; }
-html.dark-theme .pc-seat.disabled-seat { background: rgba(255,255,255,0.01) !important; border-color: rgba(255,255,255,0.03) !important; color: var(--dt-muted) !important; }
-html.dark-theme .pc-seat.selected { background: rgba(43,108,176,0.9) !important; border-color: rgba(43,108,176,1) !important; color: #ffffff !important; }
-
-/* Notifications */
-html.dark-theme .notif-card { background: var(--dt-panel) !important; border-color: rgba(255,255,255,0.03) !important; color: var(--dt-text) !important; box-shadow: 0 10px 30px rgba(2,6,23,0.5) !important; }
-html.dark-theme .notif-card-header { background: rgba(10,77,140,0.16) !important; color: #ffffff !important; }
-html.dark-theme .notif-item { border-bottom-color: rgba(255,255,255,0.03) !important; color: var(--dt-text) !important; }
-html.dark-theme .notif-icon { background: rgba(255,255,255,0.02) !important; color: var(--dt-text) !important; }
-html.dark-theme .notif-title { color: var(--dt-text) !important; }
-html.dark-theme .notif-body { color: var(--dt-muted) !important; }
+/* About / Community sections */
+html.dark-theme .about-section,
+html.dark-theme .community-section { background: var(--dt-bg) !important; color: var(--dt-text) !important; }
+html.dark-theme .about-section h2,
+html.dark-theme .community-section h2 { color: var(--dt-text) !important; }
+html.dark-theme .about-section p,
+html.dark-theme .community-section p  { color: var(--dt-muted) !important; }
 
 /* Testimonials */
-html.dark-theme .testi-form-card,
-html.dark-theme .testi-card,
-html.dark-theme .testi-my-table td,
-html.dark-theme .testi-my-table th,
-html.dark-theme .testi-cards-grid .testi-card {
+html.dark-theme .testimonial-card {
   background: var(--dt-panel) !important;
+  border-color: rgba(255,255,255,0.04) !important;
   color: var(--dt-text) !important;
-  border-color: rgba(255,255,255,0.03) !important;
-  box-shadow: 0 8px 24px rgba(2,6,23,0.45) !important;
 }
-html.dark-theme .testi-form-card textarea { background: rgba(255,255,255,0.02) !important; color: var(--dt-text) !important; border-color: rgba(255,255,255,0.04) !important; }
-html.dark-theme .testi-card-msg { color: var(--dt-text) !important; }
-html.dark-theme .status-badge.pending { background: rgba(232,160,32,0.12) !important; color: #a06010 !important; }
+html.dark-theme .testimonial-card p  { color: var(--dt-muted) !important; }
+html.dark-theme .testimonial-author  { color: var(--dt-text) !important; }
 
-/* Final safety net: any inline white-ish backgrounds used by student pages */
-html.dark-theme body.student-page [style*="background"] { background-color: rgba(255,255,255,0.02) !important; }
-html.dark-theme body.student-page [style*="color:"] { color: #ffffff !important; }
+/* Footer */
+html.dark-theme footer {
+  background: var(--dt-surface) !important;
+  border-top-color: rgba(255,255,255,0.04) !important;
+  color: var(--dt-muted) !important;
+}
+html.dark-theme footer a { color: var(--dt-muted) !important; }
+html.dark-theme footer a:hover { color: var(--dt-text) !important; }
 
-/* High-specificity overrides to force dark backgrounds for small icon buttons and ensure text is white */
-html.dark-theme .admin-icon-btn,
-html.dark-theme .sn-icon-btn,
-html.dark-theme .notif-bell-wrap button,
-html.dark-theme .theme-toggle,
-html.dark-theme .notif-bell-wrap .notify-btn,
-html.dark-theme .nav-right .icon-btn {
+/* Admin nav (icon buttons) */
+html.dark-theme .admin-site { background: var(--dt-surface) !important; border-bottom-color: rgba(255,255,255,0.04) !important; }
+html.dark-theme .admin-icon-btn {
   background: transparent !important;
-  background-color: rgba(255,255,255,0.03) !important;
   color: var(--dt-text) !important;
-  border: 1px solid rgba(255,255,255,0.04) !important;
-  box-shadow: none !important;
+  border: none !important;
 }
+html.dark-theme .admin-icon-btn:hover { background: rgba(255,255,255,0.06) !important; }
+html.dark-theme .admin-icon-btn svg   { stroke: currentColor !important; fill: none !important; }
 
-/* Remove white rounded squares behind icons */
-html.dark-theme .notif-bell-wrap .notify-btn,
-html.dark-theme .theme-toggle,
-html.dark-theme .admin-icon-btn,
-html.dark-theme .sn-icon-btn {
-  background-color: transparent !important;
-  color: var(--dt-text) !important;
-  border-radius: 6px !important;
-  padding: 6px !important;
-}
+/* Admin main content */
+html.dark-theme .admin-main   { background: transparent !important; color: var(--dt-text) !important; }
+html.dark-theme .admin-card   { color: var(--dt-text) !important; }
+html.dark-theme .admin-table  { color: var(--dt-text) !important; }
+html.dark-theme .sw-table     { color: var(--dt-text) !important; }
+html.dark-theme .modal-box    { color: var(--dt-text) !important; }
 
-/* Force icon SVGs and images to use currentColor so they become white */
-html.dark-theme .admin-icon-btn svg,
-html.dark-theme .sn-icon-btn svg,
-html.dark-theme .theme-toggle svg,
-html.dark-theme .notif-bell-wrap svg {
-  fill: currentColor !important;
-  stroke: currentColor !important;
-}
-
-/* Ensure all direct text inside major containers is white */
-html.dark-theme .admin-main,
-html.dark-theme .admin-card,
-html.dark-theme .pc-mgmt-card,
-html.dark-theme .admin-table,
-html.dark-theme .sw-table,
-html.dark-theme .notif-dropdown,
-html.dark-theme .modal-box {
-  color: var(--dt-text) !important;
-}
-
-/* Last-resort inline-style enforcer: if anything still shows white, force backgrounds to panel color */
-html.dark-theme .admin-icon-btn[style],
-html.dark-theme .notif-bell-wrap button[style],
-html.dark-theme .theme-toggle[style] {
-  background-color: rgba(255,255,255,0.02) !important;
-  color: var(--dt-text) !important;
-}
+/* Student pages */
+html.dark-theme body.student-page { background: var(--dt-bg) !important; }
