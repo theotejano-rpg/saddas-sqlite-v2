@@ -160,6 +160,7 @@ body.student-page a { text-decoration: none !important; }
 .sn-icon-btn {
   position: relative; display: flex; align-items: center; justify-content: center;
   width: 38px; height: 38px; border-radius: 10px;
+  background: transparent; border: none; cursor: pointer;
   color: var(--ink-soft, #6b7a8d);
   transition: background 0.18s, color 0.18s;
   text-decoration: none !important;
@@ -313,9 +314,7 @@ body.student-page a { text-decoration: none !important; }
     </a>
     <!-- Theme toggle for students -->
     <button id="themeToggleStudent" class="sn-icon-btn theme-toggle" title="Toggle theme" aria-pressed="false" style="margin-left:8px;">
-      <svg id="themeIconStudent" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="4"></circle>
-      </svg>
+      <svg id="themeIconStudent" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
       <span class="tooltip">Toggle theme</span>
     </button>
   </div>

@@ -472,3 +472,121 @@ body.student-page {
 .student-main {
   flex: 1;
 }
+/* ============================================================
+   STUDENT PAGES — DARK MODE  (matches admin dark theme)
+   Same variables: --dt-bg #071026 | --dt-surface #0f1724
+                   --dt-panel #0c1520 | --dt-text #fff
+                   --dt-muted #9aa5b4
+   ============================================================ */
+
+/* --- Page background --- */
+html.dark-theme body.student-page {
+  background: var(--dt-bg) !important;
+  color: var(--dt-text) !important;
+}
+
+/* --- Profile sidebar & card --- */
+html.dark-theme .profile-sidebar  { background: var(--dt-surface) !important; border-color: rgba(255,255,255,0.06) !important; }
+html.dark-theme .profile-card     { background: var(--dt-surface) !important; border-color: rgba(255,255,255,0.06) !important; color: var(--dt-text) !important; }
+html.dark-theme .profile-name     { color: var(--dt-text) !important; }
+html.dark-theme .profile-id       { color: var(--dt-muted) !important; }
+html.dark-theme .profile-label    { color: var(--dt-muted) !important; }
+html.dark-theme .profile-value    { color: var(--dt-text) !important; }
+html.dark-theme .profile-row      { border-bottom-color: rgba(255,255,255,0.05) !important; }
+
+/* --- Session card --- */
+html.dark-theme .session-card     { background: var(--dt-surface) !important; border-color: rgba(255,255,255,0.06) !important; color: var(--dt-text) !important; }
+
+/* --- Announcements --- */
+html.dark-theme .announcement-card { background: var(--dt-panel) !important; border-color: rgba(255,255,255,0.06) !important; color: var(--dt-text) !important; }
+html.dark-theme .ann-title         { color: var(--dt-text) !important; }
+html.dark-theme .ann-body          { color: var(--dt-muted) !important; }
+html.dark-theme .ann-date          { color: var(--dt-muted) !important; }
+
+/* --- Rules card --- */
+html.dark-theme .rule-card        { background: var(--dt-panel) !important; border-color: rgba(255,255,255,0.06) !important; color: var(--dt-text) !important; }
+html.dark-theme .rule-body        { color: var(--dt-muted) !important; }
+
+/* --- Content sections / wrappers --- */
+html.dark-theme .content-section  { background: transparent !important; color: var(--dt-text) !important; }
+
+/* --- Tables (History, Testimonials) --- */
+html.dark-theme table              { background: var(--dt-panel) !important; color: var(--dt-text) !important; border-color: rgba(255,255,255,0.06) !important; }
+html.dark-theme thead, html.dark-theme th { background: var(--dt-surface) !important; color: var(--dt-text) !important; border-color: rgba(255,255,255,0.08) !important; }
+html.dark-theme td                 { color: var(--dt-text) !important; border-color: rgba(255,255,255,0.05) !important; }
+html.dark-theme tr:hover td        { background: rgba(255,255,255,0.03) !important; }
+
+/* --- History page --- */
+html.dark-theme .history-card      { background: var(--dt-panel) !important; border-color: rgba(255,255,255,0.06) !important; color: var(--dt-text) !important; }
+html.dark-theme .history-card-header { background: var(--dt-surface) !important; color: var(--dt-text) !important; }
+html.dark-theme .history-stat      { color: var(--dt-muted) !important; }
+html.dark-theme .history-filter    { background: var(--dt-surface) !important; border-color: rgba(255,255,255,0.08) !important; color: var(--dt-text) !important; }
+html.dark-theme .history-filter input,
+html.dark-theme .history-filter select { background: var(--dt-panel) !important; border-color: rgba(255,255,255,0.1) !important; color: var(--dt-text) !important; }
+html.dark-theme .empty-history     { color: var(--dt-muted) !important; }
+
+/* --- Feedback modal --- */
+html.dark-theme .feedback-modal-overlay { background: rgba(0,0,0,0.7) !important; }
+html.dark-theme .feedback-modal        { background: var(--dt-surface) !important; border-color: rgba(255,255,255,0.08) !important; color: var(--dt-text) !important; }
+html.dark-theme .feedback-modal-header { border-bottom-color: rgba(255,255,255,0.08) !important; }
+html.dark-theme .feedback-modal-title  { color: var(--dt-text) !important; }
+html.dark-theme .feedback-session-info { color: var(--dt-muted) !important; }
+html.dark-theme .feedback-textarea     { background: var(--dt-panel) !important; border-color: rgba(255,255,255,0.1) !important; color: var(--dt-text) !important; }
+html.dark-theme .feedback-textarea::placeholder { color: rgba(255,255,255,0.3) !important; }
+html.dark-theme .feedback-modal-footer { border-top-color: rgba(255,255,255,0.08) !important; }
+
+/* --- Reservation page --- */
+html.dark-theme .pc-grid           { background: var(--dt-panel) !important; border-color: rgba(255,255,255,0.06) !important; }
+html.dark-theme .pc-sw-panel       { background: var(--dt-surface) !important; border-color: rgba(255,255,255,0.06) !important; color: var(--dt-text) !important; }
+html.dark-theme .pc-sw-title       { color: var(--dt-text) !important; }
+html.dark-theme .pc-sw-list        { color: var(--dt-muted) !important; }
+html.dark-theme .pc-legend-item    { color: var(--dt-muted) !important; }
+html.dark-theme .pc-modal-overlay  { background: rgba(0,0,0,0.7) !important; }
+html.dark-theme .pc-modal          { background: var(--dt-surface) !important; border-color: rgba(255,255,255,0.08) !important; color: var(--dt-text) !important; }
+html.dark-theme .pc-modal-title    { color: var(--dt-text) !important; }
+html.dark-theme .pc-modal-sub      { color: var(--dt-muted) !important; }
+html.dark-theme .res-alert--error  { background: rgba(185,28,28,0.15) !important; color: #fca5a5 !important; border-color: rgba(185,28,28,0.3) !important; }
+html.dark-theme .res-alert--success{ background: rgba(21,128,61,0.15) !important; color: #86efac !important; border-color: rgba(21,128,61,0.3) !important; }
+
+/* --- Testimonials page --- */
+html.dark-theme .testi-form-card   { background: var(--dt-panel) !important; border-color: rgba(255,255,255,0.06) !important; color: var(--dt-text) !important; }
+html.dark-theme .testi-section-title { color: var(--dt-text) !important; }
+html.dark-theme .testi-section-sub { color: var(--dt-muted) !important; }
+html.dark-theme .testi-card        { background: var(--dt-panel) !important; border-color: rgba(255,255,255,0.06) !important; }
+html.dark-theme .testi-card-msg    { color: var(--dt-muted) !important; }
+html.dark-theme .testi-card-author { color: var(--dt-text) !important; }
+html.dark-theme .testi-card-date   { color: var(--dt-muted) !important; }
+html.dark-theme .testi-my-table    { background: var(--dt-panel) !important; color: var(--dt-text) !important; }
+html.dark-theme .testi-empty       { color: var(--dt-muted) !important; }
+html.dark-theme .testi-page        { background: transparent !important; }
+
+/* --- Edit Profile page --- */
+html.dark-theme .edit-profile-wrap { background: transparent !important; }
+html.dark-theme .ep-card           { background: var(--dt-panel) !important; border-color: rgba(255,255,255,0.06) !important; color: var(--dt-text) !important; }
+html.dark-theme .ep-body           { background: transparent !important; }
+html.dark-theme .ep-divider        { border-color: rgba(255,255,255,0.07) !important; }
+html.dark-theme .ep-field label    { color: var(--dt-muted) !important; }
+html.dark-theme .ep-field input,
+html.dark-theme .ep-field select   { background: var(--dt-surface) !important; border-color: rgba(255,255,255,0.1) !important; color: var(--dt-text) !important; }
+html.dark-theme .ep-field input::placeholder { color: rgba(255,255,255,0.25) !important; }
+html.dark-theme .ep-field input:focus { border-color: rgba(74,163,255,0.4) !important; box-shadow: 0 0 0 3px rgba(74,163,255,0.08) !important; }
+html.dark-theme .ep-field-msg      { color: #fca5a5 !important; }
+html.dark-theme .ep-alert-success  { background: rgba(21,128,61,0.15) !important; color: #86efac !important; border-color: rgba(21,128,61,0.3) !important; }
+html.dark-theme .ep-alert-error    { background: rgba(185,28,28,0.15) !important; color: #fca5a5 !important; border-color: rgba(185,28,28,0.3) !important; }
+html.dark-theme .ep-avatar         { border-color: rgba(255,255,255,0.1) !important; }
+
+/* --- General inputs/selects/textareas (catch-all for student pages) --- */
+html.dark-theme input,
+html.dark-theme select,
+html.dark-theme textarea           { background: var(--dt-surface) !important; border-color: rgba(255,255,255,0.1) !important; color: var(--dt-text) !important; }
+html.dark-theme input::placeholder,
+html.dark-theme textarea::placeholder { color: rgba(255,255,255,0.25) !important; }
+
+/* --- Badges --- */
+html.dark-theme .badge.badge-pending   { background: rgba(232,160,32,0.18) !important; color: #fbbf24 !important; }
+html.dark-theme .badge.badge-active    { background: rgba(34,197,94,0.15) !important;  color: #86efac !important; }
+html.dark-theme .badge.badge-completed { background: rgba(74,163,255,0.15) !important; color: #93c5fd !important; }
+html.dark-theme .badge.badge-cancelled { background: rgba(220,38,38,0.15) !important;  color: #fca5a5 !important; }
+html.dark-theme .status-badge.pending  { background: rgba(232,160,32,0.18) !important; color: #fbbf24 !important; }
+html.dark-theme .status-badge.approved { background: rgba(34,197,94,0.15) !important;  color: #86efac !important; }
+html.dark-theme .status-badge.rejected { background: rgba(220,38,38,0.15) !important;  color: #fca5a5 !important; }

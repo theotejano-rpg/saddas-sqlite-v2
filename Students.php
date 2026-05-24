@@ -37,7 +37,7 @@ $announcements = array_map(function($a) use ($tag_cls_map) {
 $rules = [
     ['num'=>'01','title'=>'Valid ID Required',         'body'=>'Students must present a valid University of Cebu ID before entering the laboratory. No ID, no entry.'],
     ['num'=>'02','title'=>'Prior Reservation',         'body'=>'All sit-in sessions must be reserved through the portal at least one (1) hour before the intended session start time.'],
-    ['num'=>'03','title'=>'Session Time Limit',        'body'=>'Each sit-in session is limited to a maximum of three (3) hours. Students who exceed the time limit will be asked to vacate.'],
+    ['num'=>'03','title'=>'Session Time Limit',        'body'=>'There is no fixed time limit per sit-in session. Students are expected to use lab time responsibly and vacate when their work is done.'],
     ['num'=>'04','title'=>'No Food or Drink',          'body'=>'Eating and drinking inside the laboratory are strictly prohibited. Violations may result in suspension of sit-in privileges.'],
     ['num'=>'05','title'=>'Proper Use of Equipment',   'body'=>'Students are responsible for equipment they use. Damage caused by negligence will be subject to replacement fees.'],
     ['num'=>'06','title'=>'Session Limit Per Semester','body'=>'Each student is allotted a maximum of 30 sit-in sessions per semester. Sessions do not carry over to the next semester.'],

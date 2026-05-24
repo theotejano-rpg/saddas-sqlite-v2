@@ -1949,17 +1949,16 @@ body.dark-theme .nav-btn.solid {
 /* Landing theme toggle button */
 .landing-theme-toggle {
   display: flex; align-items: center; justify-content: center;
-  width: 34px; height: 34px; border-radius: 8px;
-  background: transparent; border: none;
+  width: 36px; height: 36px; border-radius: 8px;
+  background: transparent; border: 1.5px solid rgba(10,77,140,0.25);
   cursor: pointer; color: var(--ink-soft);
   margin-left: 8px; flex-shrink: 0;
-  padding: 6px 10px;
-  transition: background 0.18s, color 0.18s;
+  transition: background 0.18s, color 0.18s, border-color 0.18s;
 }
-.landing-theme-toggle:hover { background: rgba(10,77,140,0.08); color: var(--blue-deep); }
+.landing-theme-toggle:hover { background: rgba(10,77,140,0.08); color: var(--blue-deep); border-color: var(--blue-deep); }
 .landing-theme-toggle svg { display: block; }
-html.dark-theme .landing-theme-toggle { background: transparent !important; border: none !important; color: var(--dt-text) !important; }
-html.dark-theme .landing-theme-toggle:hover { background: rgba(255,255,255,0.08) !important; color: #fff !important; }
+html.dark-theme .landing-theme-toggle { background: transparent !important; border-color: rgba(255,255,255,0.14) !important; color: var(--dt-text) !important; }
+html.dark-theme .landing-theme-toggle:hover { background: rgba(255,255,255,0.08) !important; border-color: rgba(255,255,255,0.3) !important; }
 html.dark-theme .landing-theme-toggle svg { stroke: currentColor !important; fill: none !important; }
 
 /* Hero */
@@ -2028,8 +2027,8 @@ html.dark-theme .admin-main  { background: transparent !important; color: var(--
 html.dark-theme .admin-card  { color: var(--dt-text) !important; }
 html.dark-theme .modal-box   { color: var(--dt-text) !important; }
 
-/* Student pages */
-html.dark-theme body.student-page { background: var(--dt-bg) !important; }
+/* Student pages — full dark mode now in Students.css */
+html.dark-theme body.student-page { background: var(--dt-bg) !important; color: var(--dt-text) !important; }
 
 /* Nav */
 html.dark-theme .site-nav {
@@ -2063,26 +2062,26 @@ html.dark-theme .nav-btn.solid:hover { background: #5b18a8 !important; }
 /* Landing theme toggle button — matches admin 36×36px icon btn */
 .landing-theme-toggle {
   display: flex; align-items: center; justify-content: center;
-  width: 34px; height: 34px; border-radius: 8px;
-  background: transparent; border: none;
+  width: 36px; height: 36px; border-radius: 8px;
+  background: transparent; border: 1.5px solid rgba(10,77,140,0.25);
   cursor: pointer; color: var(--ink-soft);
   margin-left: 8px; flex-shrink: 0;
-  padding: 6px 10px;
-  transition: background 0.18s, color 0.18s;
+  transition: background 0.18s, color 0.18s, border-color 0.18s;
 }
 .landing-theme-toggle:hover {
   background: rgba(10,77,140,0.08);
   color: var(--blue-deep);
+  border-color: var(--blue-deep);
 }
 .landing-theme-toggle svg { display: block; }
 html.dark-theme .landing-theme-toggle {
   background: transparent !important;
-  border: none !important;
+  border-color: rgba(255,255,255,0.14) !important;
   color: var(--dt-text) !important;
 }
 html.dark-theme .landing-theme-toggle:hover {
   background: rgba(255,255,255,0.08) !important;
-  color: #fff !important;
+  border-color: rgba(255,255,255,0.3) !important;
 }
 html.dark-theme .landing-theme-toggle svg {
   stroke: currentColor !important;
@@ -2176,5 +2175,5 @@ html.dark-theme .admin-table  { color: var(--dt-text) !important; }
 html.dark-theme .sw-table     { color: var(--dt-text) !important; }
 html.dark-theme .modal-box    { color: var(--dt-text) !important; }
 
-/* Student pages */
-html.dark-theme body.student-page { background: var(--dt-bg) !important; }
+/* Student pages — full dark mode now in Students.css */
+html.dark-theme body.student-page { background: var(--dt-bg) !important; color: var(--dt-text) !important; }

@@ -442,13 +442,14 @@ $nav_admin_active = 'sitin';
       </div>
       <div class="mini-card-body <?= !empty($pending_sitins) ? 'open':'' ?>" id="body-pending">
         <table class="pending-mini-table">
-          <thead><tr><th>ID</th><th>Name</th><th>Lab</th><th>Purpose</th><th>Actions</th></tr></thead>
+          <thead><tr><th>ID</th><th>Name</th><th>Lab</th><th>PC</th><th>Purpose</th><th>Actions</th></tr></thead>
           <tbody>
             <?php foreach ($pending_sitins as $log): ?>
             <tr>
               <td><?= htmlspecialchars($log['sid']) ?></td>
               <td><?= htmlspecialchars($log['first_name'].' '.$log['last_name']) ?></td>
               <td><?= htmlspecialchars($log['lab_room']) ?></td>
+              <td><?= $log['pc_number'] ? 'PC #'.htmlspecialchars($log['pc_number']) : '<span style="color:#aaa;">—</span>' ?></td>
               <td><?= htmlspecialchars($log['purpose']) ?></td>
               <td style="display:flex;gap:5px;">
                 <a href="AdminSitin.php?approve=<?= $log['id'] ?>" onclick="return confirm('Approve?')" class="admin-btn green sm">&#10003;</a>
@@ -456,7 +457,7 @@ $nav_admin_active = 'sitin';
               </td>
             </tr>
             <?php endforeach; ?>
-            <?php if (empty($pending_sitins)): ?><tr><td colspan="5" class="empty-state" style="font-size:0.8rem;">No pending reservations.</td></tr><?php endif; ?>
+            <?php if (empty($pending_sitins)): ?><tr><td colspan="6" class="empty-state" style="font-size:0.8rem;">No pending reservations.</td></tr><?php endif; ?>
           </tbody>
         </table>
       </div>
@@ -477,7 +478,7 @@ $nav_admin_active = 'sitin';
     <div class="sitin-table-wrap">
       <table class="sitin-table" id="sitinTable">
         <thead>
-          <tr><th>ID Number</th><th>Name</th><th>Purpose</th><th>Lab</th><th>Date In</th><th>Time In</th><th>Sessions Left</th><th>Status</th><th>Actions</th></tr>
+          <tr><th>ID Number</th><th>Name</th><th>Purpose</th><th>Lab</th><th>PC</th><th>Date In</th><th>Time In</th><th>Sessions Left</th><th>Status</th><th>Actions</th></tr>
         </thead>
         <tbody>
           <?php foreach ($current_sitins as $log):
@@ -488,6 +489,7 @@ $nav_admin_active = 'sitin';
             <td><?= htmlspecialchars($log['first_name'].' '.$log['last_name']) ?></td>
             <td><?= htmlspecialchars($log['purpose']) ?></td>
             <td><?= htmlspecialchars($log['lab_room']) ?></td>
+            <td><?= $log['pc_number'] ? 'PC #'.htmlspecialchars($log['pc_number']) : '<span style="color:#aaa;">—</span>' ?></td>
             <td><?= $date_in->format('M d, Y') ?></td>
             <td><?= $date_in->format('h:i A') ?></td>
             <td><?= $log['remaining'] ?></td>
@@ -496,11 +498,12 @@ $nav_admin_active = 'sitin';
           </tr>
           <?php endforeach; ?>
           <?php if (empty($current_sitins)): ?>
-            <tr><td colspan="9" class="empty-state">No active sit-in sessionggs.</td></tr>
+            <tr><td colspan="10" class="empty-state">No active sit-in sessionggs.</td></tr>
           <?php endif; ?>
         </tbody>
 
       </table>
+      <div id="sitinPagination" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:16px 0 4px;"></div>
     </div>
   </div>
 </main>
@@ -515,9 +518,56 @@ function toggleCard(id) {
 function filterTable() {
   const q = document.getElementById('tableSearch').value.toLowerCase();
   document.querySelectorAll('#sitinTable tbody tr').forEach(r => {
-    r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none';
+    const match = r.textContent.toLowerCase().includes(q);
+    r.dataset.hidden = match ? 'false' : 'true';
+    if (!match) r.style.display = 'none';
   });
+  window._repaginateSitin && window._repaginateSitin();
 }
+
+function initPagination(tableId, paginationId, perPage, repaginateKey) {
+  const tbody = document.querySelector('#' + tableId + ' tbody');
+  const pagination = document.getElementById(paginationId);
+  let currentPage = 1;
+
+  function getVisibleRows() {
+    return Array.from(tbody.querySelectorAll('tr')).filter(r => r.dataset.hidden !== 'true');
+  }
+
+  function renderPage(page) {
+    currentPage = page;
+    const rows = getVisibleRows();
+    const totalPages = Math.max(1, Math.ceil(rows.length / perPage));
+    currentPage = Math.min(currentPage, totalPages);
+    rows.forEach((r, i) => {
+      r.style.display = (i >= (currentPage-1)*perPage && i < currentPage*perPage) ? '' : 'none';
+    });
+    renderControls(totalPages);
+  }
+
+  function renderControls(totalPages) {
+    pagination.innerHTML = '';
+    if (totalPages <= 1) return;
+    const btn = (label, page, disabled, active) => {
+      const b = document.createElement('button');
+      b.innerHTML = label;
+      b.disabled = disabled;
+      b.style.cssText = `padding:6px 12px;border-radius:8px;border:1px solid ${active?'#0a4d8c':'rgba(10,77,140,0.2)'};background:${active?'#0a4d8c':'transparent'};color:${active?'#fff':'var(--ink-soft)'};cursor:${disabled?'default':'pointer'};font-size:0.8rem;font-weight:600;transition:all 0.15s;`;
+      if (!disabled) b.onclick = () => renderPage(page);
+      return b;
+    };
+    pagination.appendChild(btn('&#8592;', currentPage-1, currentPage===1, false));
+    for (let i = 1; i <= totalPages; i++) {
+      pagination.appendChild(btn(i, i, false, i===currentPage));
+    }
+    pagination.appendChild(btn('&#8594;', currentPage+1, currentPage===totalPages, false));
+  }
+
+  window[repaginateKey] = () => renderPage(1);
+  renderPage(1);
+}
+
+initPagination('sitinTable', 'sitinPagination', 10, '_repaginateSitin');
 </script>
 </body>
 </html>

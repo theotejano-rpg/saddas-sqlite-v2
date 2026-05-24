@@ -411,16 +411,16 @@ $nav_admin_active = 'reports';
       <a href="AdminReports.php" class="admin-btn ghost">Clear</a>
     </form>
     <div class="history-table-wrap">
-      <table class="history-table">
+      <table class="history-table" id="reportsTable">
         <thead>
           <tr>
             <th>#</th><th>Student ID</th><th>Name</th><th>Course</th>
-            <th>Lab</th><th>Purpose</th><th>Date</th><th>Time In</th><th>Time Out</th><th>Status</th>
+            <th>Lab</th><th>PC</th><th>Purpose</th><th>Date</th><th>Time In</th><th>Time Out</th><th>Status</th>
           </tr>
         </thead>
         <tbody>
           <?php if (empty($records)): ?>
-            <tr><td colspan="10" class="empty-state">No records found.</td></tr>
+            <tr><td colspan="11" class="empty-state">No records found.</td></tr>
           <?php endif; ?>
           <?php foreach ($records as $i => $r):
             $date_in  = new DateTime($r['date_in']);
@@ -432,6 +432,7 @@ $nav_admin_active = 'reports';
             <td><?= htmlspecialchars($r['first_name'].' '.$r['last_name']) ?></td>
             <td><?= htmlspecialchars($r['course_code']) ?></td>
             <td><?= htmlspecialchars($r['lab_room']) ?></td>
+            <td><?= $r['pc_number'] ? 'PC #'.htmlspecialchars($r['pc_number']) : '<span style="color:#aaa;">—</span>' ?></td>
             <td><?= htmlspecialchars($r['purpose']) ?></td>
             <td><?= $date_in->format('M d, Y') ?></td>
             <td><?= $date_in->format('h:i A') ?></td>
@@ -441,12 +442,56 @@ $nav_admin_active = 'reports';
           <?php endforeach; ?>
         </tbody>
       </table>
+      <div id="pagination" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:16px 0 4px;"></div>
     </div>
   </div>
 
 </main>
 <?php include __DIR__ . '/footer.php'; ?>
 <script>
+function initPagination(tableId, paginationId, perPage) {
+  const tbody = document.querySelector('#' + tableId + ' tbody');
+  const pagination = document.getElementById(paginationId);
+  let currentPage = 1;
+
+  function getVisibleRows() {
+    return Array.from(tbody.querySelectorAll('tr')).filter(r => r.dataset.hidden !== 'true');
+  }
+
+  function renderPage(page) {
+    currentPage = page;
+    const rows = getVisibleRows();
+    const totalPages = Math.max(1, Math.ceil(rows.length / perPage));
+    currentPage = Math.min(currentPage, totalPages);
+    rows.forEach((r, i) => {
+      r.style.display = (i >= (currentPage-1)*perPage && i < currentPage*perPage) ? '' : 'none';
+    });
+    renderControls(totalPages);
+  }
+
+  function renderControls(totalPages) {
+    pagination.innerHTML = '';
+    if (totalPages <= 1) return;
+    const btn = (label, page, disabled, active) => {
+      const b = document.createElement('button');
+      b.innerHTML = label;
+      b.disabled = disabled;
+      b.style.cssText = `padding:6px 12px;border-radius:8px;border:1px solid ${active?'#0a4d8c':'rgba(10,77,140,0.2)'};background:${active?'#0a4d8c':'transparent'};color:${active?'#fff':'var(--ink-soft)'};cursor:${disabled?'default':'pointer'};font-size:0.8rem;font-weight:600;transition:all 0.15s;`;
+      if (!disabled) b.onclick = () => renderPage(page);
+      return b;
+    };
+    pagination.appendChild(btn('&#8592;', currentPage-1, currentPage===1, false));
+    for (let i = 1; i <= totalPages; i++) {
+      pagination.appendChild(btn(i, i, false, i===currentPage));
+    }
+    pagination.appendChild(btn('&#8594;', currentPage+1, currentPage===totalPages, false));
+  }
+
+  renderPage(1);
+}
+
+initPagination('reportsTable', 'pagination', 10);
+
 const colors = ['#1877c9','#e74c3c','#6b21c8','#e8a020','#27ae60','#5aadea','#9b59e8','#f39c12'];
 <?php if (!empty($purpose_stats)): ?>
 new Chart(document.getElementById('purposeChart'), { type:'pie', data:{ labels:<?= json_encode(array_column($purpose_stats,'purpose')) ?>, datasets:[{ data:<?= json_encode(array_column($purpose_stats,'cnt')) ?>, backgroundColor:colors, borderWidth:2, borderColor:'#fff' }] }, options:{ responsive:true, plugins:{ legend:{ position:'bottom', labels:{ font:{family:'DM Sans',size:11}, padding:10 } } } } });

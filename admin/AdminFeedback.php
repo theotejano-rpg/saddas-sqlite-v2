@@ -688,6 +688,7 @@ $nav_admin_active = 'feedback';
           <?php endforeach; ?>
         </tbody>
       </table>
+      <div id="fbPagination" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:16px 0 4px;"></div>
       <?php endif; ?>
     </div>
   </div>
@@ -725,6 +726,50 @@ function openModal(data) {
 function closeModal() {
   document.getElementById('fbModal').classList.remove('open');
 }
+
+function initPagination(tableId, paginationId, perPage) {
+  const tbody = document.querySelector('#' + tableId + ' tbody');
+  const pagination = document.getElementById(paginationId);
+  if (!tbody || !pagination) return;
+  let currentPage = 1;
+
+  function getVisibleRows() {
+    return Array.from(tbody.querySelectorAll('tr')).filter(r => r.dataset.hidden !== 'true');
+  }
+
+  function renderPage(page) {
+    currentPage = page;
+    const rows = getVisibleRows();
+    const totalPages = Math.max(1, Math.ceil(rows.length / perPage));
+    currentPage = Math.min(currentPage, totalPages);
+    rows.forEach((r, i) => {
+      r.style.display = (i >= (currentPage-1)*perPage && i < currentPage*perPage) ? '' : 'none';
+    });
+    renderControls(totalPages);
+  }
+
+  function renderControls(totalPages) {
+    pagination.innerHTML = '';
+    if (totalPages <= 1) return;
+    const btn = (label, page, disabled, active) => {
+      const b = document.createElement('button');
+      b.innerHTML = label;
+      b.disabled = disabled;
+      b.style.cssText = `padding:6px 12px;border-radius:8px;border:1px solid ${active?'#0a4d8c':'rgba(10,77,140,0.2)'};background:${active?'#0a4d8c':'transparent'};color:${active?'#fff':'var(--ink-soft)'};cursor:${disabled?'default':'pointer'};font-size:0.8rem;font-weight:600;transition:all 0.15s;`;
+      if (!disabled) b.onclick = () => renderPage(page);
+      return b;
+    };
+    pagination.appendChild(btn('&#8592;', currentPage-1, currentPage===1, false));
+    for (let i = 1; i <= totalPages; i++) {
+      pagination.appendChild(btn(i, i, false, i===currentPage));
+    }
+    pagination.appendChild(btn('&#8594;', currentPage+1, currentPage===totalPages, false));
+  }
+
+  renderPage(1);
+}
+
+initPagination('fbTable', 'fbPagination', 10);
 
 function exportCSV() {
   const rows = [['#','Student Name','Student ID','Course','Lab Room','Purpose','Date','Feedback']];

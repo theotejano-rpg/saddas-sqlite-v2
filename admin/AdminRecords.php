@@ -22,33 +22,42 @@ $nav_admin_active = 'records';
   <link rel="stylesheet" href="../css/Admin.css"/>
   <style>
     body.admin-page a { text-decoration: none !important; }
-    .records-table { width:100%; border-collapse:collapse; font-size:0.85rem; }
+    .records-table { width:100%; border-collapse:collapse; font-size:0.82rem; table-layout:auto; }
     .records-table th {
-      padding:13px 18px; text-align:left;
+      padding:10px 12px; text-align:left;
       background:rgba(10,77,140,0.06); color:var(--blue-deep);
-      font-weight:600; font-size:0.72rem; text-transform:uppercase;
+      font-weight:600; font-size:0.70rem; text-transform:uppercase;
       letter-spacing:0.5px; border-bottom:2px solid rgba(10,77,140,0.1);
       white-space:nowrap;
     }
     .records-table td {
-      padding:14px 18px; color:var(--ink);
+      padding:10px 12px; color:var(--ink);
       border-bottom:1px solid rgba(204,222,237,0.4);
-      vertical-align:middle; white-space:nowrap;
+      vertical-align:middle; white-space:normal; word-break:break-word;
     }
     .records-table tr:last-child td { border-bottom:none; }
     .records-table tr:hover td { background:rgba(10,77,140,0.02); }
-    .records-toolbar {
-      display:flex; align-items:center; justify-content:flex-end;
-      padding:14px 20px; border-bottom:1px solid rgba(204,222,237,0.4); gap:8px;
+    .filter-bar {
+      display:flex; align-items:flex-end; flex-wrap:wrap; gap:12px;
+      padding:16px 20px; border-bottom:1px solid rgba(204,222,237,0.4);
+      background:rgba(10,77,140,0.02);
     }
-    .records-toolbar label { font-size:0.8rem; color:var(--ink-soft); }
-    .records-toolbar input {
-      width:220px; padding:7px 12px;
-      border:1.5px solid #ccdeed; border-radius:8px;
+    .filter-group { display:flex; flex-direction:column; gap:4px; }
+    .filter-group label { font-size:0.68rem; font-weight:700; letter-spacing:0.6px; text-transform:uppercase; color:var(--ink-soft); }
+    .filter-group input, .filter-group select {
+      padding:8px 12px; border:1.5px solid #ccdeed; border-radius:8px;
       font-family:'DM Sans',sans-serif; font-size:0.82rem;
-      outline:none; transition:border-color 0.2s;
+      outline:none; transition:border-color 0.2s; background:var(--surface,#fff); color:var(--ink);
+      min-width:140px;
     }
-    .records-toolbar input:focus { border-color:#1877c9; }
+    .filter-group input:focus, .filter-group select:focus { border-color:#1877c9; }
+    .filter-apply-btn {
+      padding:8px 22px; background:#1877c9; color:#fff;
+      border:none; border-radius:8px; font-family:'DM Sans',sans-serif;
+      font-size:0.84rem; font-weight:600; cursor:pointer;
+      transition:background 0.18s; white-space:nowrap; align-self:flex-end;
+    }
+    .filter-apply-btn:hover { background:#0a4d8c; }
     .records-table-wrap { padding:0 0 4px; overflow-x:auto; }
 
     .feedback-view-btn {
@@ -179,6 +188,7 @@ $nav_admin_active = 'records';
 
     /* Toolbars / filter bars */
     .dark-theme .records-toolbar,
+    .dark-theme .filter-bar,
     .dark-theme .res-toolbar,
     .dark-theme .inline-search-wrap,
     .dark-theme .history-toolbar,
@@ -318,9 +328,36 @@ $nav_admin_active = 'records';
       Sit-In History
     </div>
 
-    <div class="records-toolbar">
-      <label>Search:</label>
-      <input type="text" id="tableSearch" oninput="filterTable()" placeholder="Search by name, ID, lab..."/>
+    <div class="filter-bar">
+      <div class="filter-group">
+        <label>From Date</label>
+        <input type="date" id="filterFrom" />
+      </div>
+      <div class="filter-group">
+        <label>To Date</label>
+        <input type="date" id="filterTo" />
+      </div>
+      <div class="filter-group">
+        <label>Lab</label>
+        <select id="filterLab">
+          <option value="">All Labs</option>
+          <?php
+            $labs = $db->query("SELECT DISTINCT lab_room FROM sitin_logs ORDER BY lab_room")->fetchAll(PDO::FETCH_COLUMN);
+            foreach($labs as $lab) echo "<option value=\"".htmlspecialchars($lab)."\">".htmlspecialchars($lab)."</option>";
+          ?>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Status</label>
+        <select id="filterStatus">
+          <option value="">All</option>
+          <option value="pending">Pending</option>
+          <option value="active">Active</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+      <button class="filter-apply-btn" onclick="applyFilters()">Apply Filters</button>
     </div>
 
     <div class="records-table-wrap">
@@ -332,6 +369,7 @@ $nav_admin_active = 'records';
             <th>Name</th>
             <th>Purpose</th>
             <th>Lab</th>
+            <th>PC</th>
             <th>Date In</th>
             <th>Date Out</th>
             <th>Status</th>
@@ -346,8 +384,9 @@ $nav_admin_active = 'records';
             <td><?= htmlspecialchars($r['first_name'].' '.$r['last_name']) ?></td>
             <td><?= htmlspecialchars($r['purpose']) ?></td>
             <td><?= htmlspecialchars($r['lab_room']) ?></td>
-            <td><?= htmlspecialchars($r['date_in']) ?></td>
-            <td><?= $r['date_out'] ? htmlspecialchars($r['date_out']) : '<span style="color:#aaa;font-style:italic;">Still active</span>' ?></td>
+            <td><?= $r['pc_number'] ? 'PC #'.htmlspecialchars($r['pc_number']) : '<span style="color:#aaa;">—</span>' ?></td>
+            <td><?php $d = new DateTime(str_replace('T',' ',$r['date_in'])); echo $d->format('M d, Y h:i A'); ?></td>
+            <td><?php if($r['date_out']){ $d = new DateTime(str_replace('T',' ',$r['date_out'])); echo $d->format('M d, Y h:i A'); } else { echo '<span style="color:#aaa;font-style:italic;">—</span>'; } ?></td>
             <td><span class="badge badge-<?= $r['status'] ?>"><?= ucfirst($r['status']) ?></span></td>
             <td>
               <?php if (!empty($r['feedback'])): ?>
@@ -368,15 +407,14 @@ $nav_admin_active = 'records';
           </tr>
           <?php endforeach; ?>
           <?php if (empty($records)): ?>
-            <tr><td colspan="9" class="empty-state">No sit-in records yet.</td></tr>
+            <tr><td colspan="10" class="empty-state">No sit-in records yet.</td></tr>
           <?php endif; ?>
         </tbody>
       </table>
+      <div id="pagination" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:16px 0 4px;"></div>
     </div>
   </div>
 </main>
-
-<!-- Feedback View Modal -->
 <div class="modal-overlay" id="feedbackModal">
   <div class="modal-box">
     <div class="modal-header">
@@ -400,12 +438,76 @@ $nav_admin_active = 'records';
 
 <?php include __DIR__ . '/footer.php'; ?>
 <script>
-function filterTable() {
-  const q = document.getElementById('tableSearch').value.toLowerCase();
-  document.querySelectorAll('#recordsTable tbody tr').forEach(r => {
-    r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none';
-  });
+function initPagination(tableId, paginationId, perPage) {
+  const tbody = document.querySelector('#' + tableId + ' tbody');
+  const pagination = document.getElementById(paginationId);
+  let currentPage = 1;
+
+  function getVisibleRows() {
+    return Array.from(tbody.querySelectorAll('tr')).filter(r => r.dataset.hidden !== 'true');
+  }
+
+  function renderPage(page) {
+    currentPage = page;
+    const rows = getVisibleRows();
+    const totalPages = Math.max(1, Math.ceil(rows.length / perPage));
+    currentPage = Math.min(currentPage, totalPages);
+    rows.forEach((r, i) => {
+      r.style.display = (i >= (currentPage-1)*perPage && i < currentPage*perPage) ? '' : 'none';
+    });
+    renderControls(totalPages);
+  }
+
+  function renderControls(totalPages) {
+    pagination.innerHTML = '';
+    if (totalPages <= 1) return;
+    const btn = (label, page, disabled, active) => {
+      const b = document.createElement('button');
+      b.innerHTML = label;
+      b.disabled = disabled;
+      b.style.cssText = `padding:6px 12px;border-radius:8px;border:1px solid ${active?'#0a4d8c':'rgba(10,77,140,0.2)'};background:${active?'#0a4d8c':'transparent'};color:${active?'#fff':'var(--ink-soft)'};cursor:${disabled?'default':'pointer'};font-size:0.8rem;font-weight:600;transition:all 0.15s;`;
+      if (!disabled) b.onclick = () => renderPage(page);
+      return b;
+    };
+    pagination.appendChild(btn('&#8592;', currentPage-1, currentPage===1, false));
+    for (let i = 1; i <= totalPages; i++) {
+      pagination.appendChild(btn(i, i, false, i===currentPage));
+    }
+    pagination.appendChild(btn('&#8594;', currentPage+1, currentPage===totalPages, false));
+  }
+
+  window._repaginate = () => renderPage(1);
+  renderPage(1);
 }
+
+function applyFilters() {
+  const from   = document.getElementById('filterFrom').value;
+  const to     = document.getElementById('filterTo').value;
+  const lab    = document.getElementById('filterLab').value.toLowerCase();
+  const status = document.getElementById('filterStatus').value.toLowerCase();
+
+  document.querySelectorAll('#recordsTable tbody tr').forEach(r => {
+    const cells   = r.querySelectorAll('td');
+    if (!cells.length) return;
+    const rowLab    = (cells[4]?.textContent || '').toLowerCase();
+    const rowStatus = (cells[8]?.textContent || '').toLowerCase().trim();
+    const rowDateRaw = cells[6]?.textContent || '';
+    // parse "May 24, 2026 12:08 AM" → date string for comparison
+    const rowDate = rowDateRaw ? new Date(rowDateRaw).toISOString().slice(0,10) : '';
+
+    let show = true;
+    if (from && rowDate && rowDate < from) show = false;
+    if (to   && rowDate && rowDate > to)   show = false;
+    if (lab    && !rowLab.includes(lab))       show = false;
+    if (status && !rowStatus.includes(status)) show = false;
+
+    r.dataset.hidden = show ? 'false' : 'true';
+    if (!show) r.style.display = 'none';
+  });
+  window._repaginate && window._repaginate();
+}
+
+initPagination('recordsTable', 'pagination', 10);
 
 function viewFeedback(name, sid, lab, purpose, dateIn, feedback) {
   document.getElementById('modalInfo').innerHTML =

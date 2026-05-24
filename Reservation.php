@@ -261,7 +261,7 @@ $nav_student_active = 'reservation';
           <div class="res-info-box">
             <strong>Reminders:</strong>
             <ul>
-              <li>Each session is limited to <strong>3 hours</strong>.</li>
+              <li>Use lab time responsibly; vacate once your work is complete.</li>
               <li>Bring your valid <strong>UC Student ID</strong>.</li>
               <li>Arrive on time — late arrivals may forfeit the slot.</li>
             </ul>
