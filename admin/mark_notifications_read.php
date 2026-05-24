@@ -7,15 +7,10 @@
 session_start();
 require_once 'db.php';
 $db = get_db();
-// Resolve the return URL — stored links are bare filenames like "AdminSitin.php"
-// which need to be served from the admin/ folder.
-$raw = isset($_GET['return']) ? $_GET['return'] : ($_SERVER['HTTP_REFERER'] ?? 'admin/AdminSitin.php');
-// If it's just a filename (no slashes, no http), prefix with admin/
-if ($raw && !str_contains($raw, '/') && !str_starts_with($raw, 'http')) {
-    $redirect = 'admin/' . $raw;
-} else {
-    $redirect = $raw;
-}
+// Resolve the return URL — this file lives inside admin/, so bare filenames
+// like "AdminSitin.php" are already correct relative paths. No prefix needed.
+$raw = isset($_GET['return']) ? $_GET['return'] : ($_SERVER['HTTP_REFERER'] ?? 'AdminSitin.php');
+$redirect = $raw;
 
 if (isset($_GET['mark_all'])) {
     $db->exec("UPDATE notifications SET is_read = 1 WHERE is_read = 0");

@@ -6,12 +6,24 @@ if (empty($_SESSION['admin'])) { header('Location: ../Login.php'); exit; }
 $db = get_db();
 
 if (isset($_GET['approve']) && is_numeric($_GET['approve'])) {
-    $db->prepare("UPDATE sitin_logs SET status='active' WHERE id=? AND status='pending'")->execute([(int)$_GET['approve']]);
+    $log_id = (int)$_GET['approve'];
+    $logRow = $db->prepare("SELECT sl.*, s.first_name, s.last_name, s.student_id as sid FROM sitin_logs sl JOIN students s ON sl.student_id=s.id WHERE sl.id=? LIMIT 1");
+    $logRow->execute([$log_id]); $logRow = $logRow->fetch();
+    $db->prepare("UPDATE sitin_logs SET status='active' WHERE id=? AND status='pending'")->execute([$log_id]);
+    if ($logRow) {
+        log_notification('sitin_approved', "{$logRow['first_name']} {$logRow['last_name']} ({$logRow['sid']})'s reservation was approved for {$logRow['lab_room']}.");
+    }
     header('Location: AdminSitin.php?msg=approved'); exit;
 }
 
 if (isset($_GET['reject']) && is_numeric($_GET['reject'])) {
-    $db->prepare("UPDATE sitin_logs SET status='cancelled' WHERE id=? AND status='pending'")->execute([(int)$_GET['reject']]);
+    $log_id = (int)$_GET['reject'];
+    $logRow = $db->prepare("SELECT sl.*, s.first_name, s.last_name, s.student_id as sid FROM sitin_logs sl JOIN students s ON sl.student_id=s.id WHERE sl.id=? LIMIT 1");
+    $logRow->execute([$log_id]); $logRow = $logRow->fetch();
+    $db->prepare("UPDATE sitin_logs SET status='cancelled' WHERE id=? AND status='pending'")->execute([$log_id]);
+    if ($logRow) {
+        log_notification('sitin_rejected', "{$logRow['first_name']} {$logRow['last_name']} ({$logRow['sid']})'s reservation was rejected for {$logRow['lab_room']}.");
+    }
     header('Location: AdminSitin.php?msg=rejected'); exit;
 }
 

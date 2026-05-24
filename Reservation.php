@@ -103,8 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   // previously we incremented 'used' here on reservation creation; remove that so
   // students keep their session until admin marks the session completed.
         $notif_msg = "{$student['first_name']} {$student['last_name']} ({$student['student_id']}) reserved PC #{$pc_number} in {$lab_room} for {$purpose}.";
-        $db->prepare("INSERT INTO notifications (type, message, link) VALUES ('reservation', ?, 'AdminSitin.php')")
-           ->execute([$notif_msg]);
+        log_notification('reservation', $notif_msg);
 
         $success = "Reservation submitted! PC #$pc_number in $lab_room. Please wait for admin approval.";
 

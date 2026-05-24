@@ -90,6 +90,27 @@ $leaders = $db->query("
     html.dark-theme .lb-list-pts      { color: #93c5fd !important; }
     html.dark-theme footer            { background: #0f1724 !important; color: #9aa5b4 !important; border-top-color: rgba(255,255,255,0.04) !important; }
     html.dark-theme footer a          { color: #9aa5b4 !important; }
+    /* Fix theme toggle button to match admin style */
+    .landing-theme-toggle {
+      border: none !important;
+      box-shadow: none !important;
+      outline: none !important;
+      background: transparent !important;
+    }
+    .landing-theme-toggle:hover {
+      background: rgba(10,77,140,0.08) !important;
+      border: none !important;
+    }
+    html.dark-theme .landing-theme-toggle {
+      border: none !important;
+      background: transparent !important;
+    }
+    html.dark-theme .landing-theme-toggle:hover {
+      background: rgba(255,255,255,0.08) !important;
+    }
+    html.dark-theme .landing-theme-toggle svg {
+      stroke: #ffffff !important;
+    }
   </style>
   <style>
     /* ── Leaderboard section ── */

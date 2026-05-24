@@ -22,6 +22,30 @@ function get_db(): PDO
         $pdo->exec("PRAGMA foreign_keys = ON");
         $pdo->exec("PRAGMA synchronous = NORMAL");
 
+        // Auto-create notification_rules table and seed default rules if missing
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS notification_rules (
+                type    TEXT PRIMARY KEY,
+                link    TEXT NOT NULL,
+                label   TEXT NOT NULL
+            )
+        ");
+        $existing = $pdo->query("SELECT COUNT(*) FROM notification_rules")->fetchColumn();
+        if ($existing == 0) {
+            $seed = $pdo->prepare("INSERT OR IGNORE INTO notification_rules (type, link, label) VALUES (?,?,?)");
+            foreach ([
+                ['reservation',          'AdminReservation.php',  'Reservation'],
+                ['testimonial',          'AdminTestimonials.php', 'Testimonial Submitted'],
+                ['testimonial_decision', 'AdminTestimonials.php', 'Testimonial Decision'],
+                ['registration',         'AdminStudents.php',     'New Student Registration'],
+                ['sitin_approved',       'AdminSitin.php',        'Sit-in Approved'],
+                ['sitin_rejected',       'AdminSitin.php',        'Sit-in Rejected'],
+                ['general',              'admin.php',             'General'],
+            ] as $r) {
+                $seed->execute($r);
+            }
+        }
+
     } catch (PDOException $e) {
         die('<div style="font-family:sans-serif;padding:40px;color:#c0392b;max-width:600px;margin:auto;">
             <h2>&#9888; Database Connection Failed</h2>
@@ -32,4 +56,21 @@ function get_db(): PDO
     }
 
     return $pdo;
+}
+
+/**
+ * log_notification($type, $message)
+ * Logs a notification. The redirect link is looked up automatically
+ * from the notification_rules table — no hardcoding needed.
+ *
+ * Usage: log_notification('reservation', "John (UC-00001) reserved PC #3.");
+ */
+function log_notification(string $type, string $message): void
+{
+    $db = get_db();
+    $rule = $db->prepare("SELECT link FROM notification_rules WHERE type = ? LIMIT 1");
+    $rule->execute([$type]);
+    $link = $rule->fetchColumn() ?: 'admin.php';
+    $db->prepare("INSERT INTO notifications (type, message, link) VALUES (?, ?, ?)")
+       ->execute([$type, $message, $link]);
 }

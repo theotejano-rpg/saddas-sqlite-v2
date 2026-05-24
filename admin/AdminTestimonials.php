@@ -22,6 +22,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
     $id     = (int) $_POST['id'];
     $action = $_POST['action'] === 'approve' ? 'approved' : 'rejected';
     $db->prepare("UPDATE testimonials SET status = ? WHERE id = ?")->execute([$action, $id]);
+    // Notify about testimonial decision
+    $testi = $db->prepare("SELECT t.*, s.first_name, s.last_name, s.student_id AS idno FROM testimonials t JOIN students s ON s.id = t.student_id WHERE t.id = ? LIMIT 1");
+    $testi->execute([$id]); $testi = $testi->fetch();
+    if ($testi) {
+        log_notification('testimonial_decision', "{$testi['first_name']} {$testi['last_name']} ({$testi['idno']})'s testimonial has been {$action}.");
+    }
     header("Location: AdminTestimonials.php");
     exit;
 }

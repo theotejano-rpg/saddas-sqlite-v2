@@ -130,15 +130,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     html.dark-theme footer { background: #0f1724 !important; color: #9aa5b4 !important; border-top-color: rgba(255,255,255,0.04) !important; }
     .landing-theme-toggle {
       display: flex; align-items: center; justify-content: center;
-      width: 36px; height: 36px; border-radius: 8px;
-      background: transparent; border: 1.5px solid rgba(10,77,140,0.25);
+      width: 34px; height: 34px; border-radius: 8px;
+      background: transparent; border: none;
       cursor: pointer; color: var(--ink-soft); margin-left: 8px; flex-shrink: 0;
-      transition: background 0.18s, color 0.18s, border-color 0.18s;
+      padding: 6px 10px;
+      transition: background 0.18s, color 0.18s;
     }
-    .landing-theme-toggle:hover { background: rgba(10,77,140,0.08); }
+    .landing-theme-toggle:hover { background: rgba(10,77,140,0.08); color: var(--blue-deep); }
     .landing-theme-toggle svg { display: block; }
-    html.dark-theme .landing-theme-toggle { background: transparent !important; border-color: rgba(255,255,255,0.14) !important; color: #ffffff !important; }
-    html.dark-theme .landing-theme-toggle:hover { background: rgba(255,255,255,0.08) !important; }
+    html.dark-theme .landing-theme-toggle { background: transparent !important; border: none !important; color: #ffffff !important; }
+    html.dark-theme .landing-theme-toggle:hover { background: rgba(255,255,255,0.08) !important; color: #fff !important; }
   </style>
 </head>
 <body class="auth" style="display:flex;flex-direction:column;min-height:100vh;">

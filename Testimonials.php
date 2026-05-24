@@ -35,6 +35,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message'])) {
     } else {
         $stmt = $db->prepare("INSERT INTO testimonials (student_id, message, status, created_at) VALUES (?, ?, 'pending', datetime('now'))");
         $stmt->execute([$student_id, $message]);
+        // Notify admin of new testimonial
+        $stu = $db->prepare("SELECT first_name, last_name, student_id FROM students WHERE id = ? LIMIT 1");
+        $stu->execute([$student_id]);
+        $stu = $stu->fetch();
+        if ($stu) {
+            $notif_msg = "{$stu['first_name']} {$stu['last_name']} ({$stu['student_id']}) submitted a testimonial pending approval.";
+            log_notification('testimonial', $notif_msg);
+        }
         $success_msg = 'Your testimonial has been submitted and is pending approval!';
     }
 }
