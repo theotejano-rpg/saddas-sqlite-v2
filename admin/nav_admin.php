@@ -11,6 +11,7 @@ $unread_count = $db->query("SELECT COUNT(*) FROM notifications WHERE is_read = 0
   .admin-icon-btn {
     display: flex; align-items: center; justify-content: center;
     width: 36px; height: 36px; border-radius: 8px;
+    background: transparent; border: none; cursor: pointer;
     color: var(--ink-soft); text-decoration: none !important;
     position: relative; transition: background 0.18s, color 0.18s;
   }
@@ -294,7 +295,8 @@ html.dark-theme .site-nav .nav-btn {
 html.dark-theme .site-nav, html.dark-theme .site-nav * { backdrop-filter: none !important; }
 .dark-theme .nav-left-text small { color: var(--muted); }
 .dark-theme .admin-icon-btn, .dark-theme .nav-btn { color: var(--text-soft); }
-.dark-theme .admin-icon-btn:hover, .dark-theme .sn-icon-btn:hover { background: rgba(255,255,255,0.03); }
+.dark-theme button.admin-icon-btn { background: transparent; border: none; }
+.dark-theme .admin-icon-btn:hover, .dark-theme .sn-icon-btn:hover { background: rgba(255,255,255,0.06); }
 .dark-theme .notif-dropdown { background: var(--dark-panel); color: var(--text-soft); border-color: rgba(255,255,255,0.03); box-shadow: 0 10px 30px rgba(2,6,23,0.6); }
 .dark-theme .notif-item { border-bottom-color: rgba(255,255,255,0.02); }
 .dark-theme .notif-item.unread { background: rgba(74,163,255,0.06); }

@@ -1,4 +1,5 @@
 <?php
+ob_start();
 session_start();
 require_once 'db.php';
 if (empty($_SESSION['admin'])) { header('Location: ../Login.php'); exit; }
@@ -22,6 +23,12 @@ $db->exec("
         added_at    TEXT NOT NULL DEFAULT (datetime('now')),
         UNIQUE(lab_room, software)
     );
+    CREATE TABLE IF NOT EXISTS global_software (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        software    TEXT NOT NULL UNIQUE,
+        description TEXT DEFAULT '',
+        added_at    TEXT NOT NULL DEFAULT (datetime('now'))
+    );
     CREATE TABLE IF NOT EXISTS lab_pcs (
         id         INTEGER PRIMARY KEY AUTOINCREMENT,
         lab_room   TEXT NOT NULL,
@@ -38,6 +45,14 @@ $db->exec("
     UNIQUE(lab_room, pc_number, software)
   );
 ");
+
+// Migrate existing lab_software entries into global_software (one-time)
+try {
+  $db->exec("INSERT OR IGNORE INTO global_software (software, description, added_at)
+    SELECT DISTINCT software, COALESCE(NULLIF(description,''), 'Seeded software'), MIN(added_at)
+    FROM lab_software
+    GROUP BY software");
+} catch (Exception $e) {}
 
 // Migrate old is_enabled column to status if needed
 try {
@@ -59,6 +74,13 @@ $lab_rooms = [];
 $rows = $db->query("SELECT lab_room FROM lab_settings ORDER BY lab_room")->fetchAll();
 foreach ($rows as $r) $lab_rooms[] = $r['lab_room'];
 
+// Remove duplicate pc_software rows (keep the one with highest id)
+try {
+  $db->exec("DELETE FROM pc_software WHERE id NOT IN (
+    SELECT MAX(id) FROM pc_software GROUP BY lab_room, pc_number, software
+  )");
+} catch (Exception $e) {}
+
 // ── AJAX handlers ─────────────────────────────────────────────────────────────
 // Accept POSTed AJAX even if the X-Requested-With header is missing (some proxies/clients strip it).
 // We require an 'action' field to avoid accidentally running handlers on unrelated POSTs.
@@ -73,6 +95,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!empty($_SERVER['HTTP_X_REQUESTED_
             $db->prepare("INSERT INTO lab_settings (lab_room, is_enabled) VALUES (?,?)
                 ON CONFLICT(lab_room) DO UPDATE SET is_enabled=excluded.is_enabled")
                ->execute([$lab, $val]);
+            ob_clean();
+
             echo json_encode(['ok' => true]);
         }
         exit;
@@ -88,57 +112,68 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!empty($_SERVER['HTTP_X_REQUESTED_
         // seed pcs for the lab (1..50)
         $ins = $db->prepare("INSERT OR IGNORE INTO lab_pcs (lab_room, pc_number, status) VALUES (?,?, 'available')");
         for ($p = 1; $p <= 50; $p++) $ins->execute([$lab, $p]);
+        ob_clean();
+
         echo json_encode(['ok' => true]);
-      } catch (Exception $e) { echo json_encode(['ok'=>false,'msg'=>$e->getMessage()]); }
-    } else echo json_encode(['ok'=>false,'msg'=>'Invalid name']);
+      } catch (Exception $e) { ob_clean();
+ echo json_encode(['ok'=>false,'msg'=>$e->getMessage()]); }
+    } else ob_clean();
+ echo json_encode(['ok'=>false,'msg'=>'Invalid name']);
     exit;
   }
 
-  // Get a distinct global list of lab software (convenience endpoint)
+  // Get global software list
   if ($action === 'get_global_software') {
-    $gstmt = $db->prepare("SELECT DISTINCT software, description FROM lab_software ORDER BY software");
-    $gstmt->execute();
+    $gstmt = $db->query("SELECT id, software, description FROM global_software ORDER BY software");
     $grows = $gstmt->fetchAll();
+    ob_clean();
     echo json_encode(['ok' => true, 'global_rows' => $grows]);
     exit;
   }
 
     // Add software to lab
     if ($action === 'add_software') {
-        $lab  = $_POST['lab_room'] ?? '';
         $sw   = trim($_POST['software'] ?? '');
         $desc = trim($_POST['description'] ?? '');
-        if (in_array($lab, $lab_rooms) && $sw !== '') {
+        if ($sw !== '') {
             try {
-        $db->prepare("INSERT INTO lab_software (lab_room, software, description) VALUES (?,?,?)")
-           ->execute([$lab, $sw, $desc]);
-        // Auto-assign this software to all PCs in the lab (default enabled)
-        $ins = $db->prepare("INSERT OR IGNORE INTO pc_software (lab_room, pc_number, software, is_enabled) VALUES (?,?,?,1)");
-        for ($p = 1; $p <= 50; $p++) {
-          $ins->execute([$lab, $p, $sw]);
-        }
-        echo json_encode(['ok' => true]);
+                // Insert into global list
+                $db->prepare("INSERT INTO global_software (software, description) VALUES (?,?)")
+                   ->execute([$sw, $desc]);
+                // Also insert into lab_software for every lab (for backward compat)
+                $insLab = $db->prepare("INSERT OR IGNORE INTO lab_software (lab_room, software, description) VALUES (?,?,?)");
+                // Assign to every PC in every lab
+                $insPc = $db->prepare("INSERT OR IGNORE INTO pc_software (lab_room, pc_number, software, is_enabled) VALUES (?,?,?,1)");
+                foreach ($lab_rooms as $lab) {
+                    $insLab->execute([$lab, $sw, $desc]);
+                    for ($p = 1; $p <= 50; $p++) {
+                        $insPc->execute([$lab, $p, $sw]);
+                    }
+                }
+                ob_clean();
+                echo json_encode(['ok' => true]);
             } catch (Exception $e) {
-                echo json_encode(['ok' => false, 'msg' => 'Software already exists in this lab.']);
+                ob_clean();
+                echo json_encode(['ok' => false, 'msg' => 'Software already exists.']);
             }
         }
         exit;
     }
 
-    // Delete software from lab
+    // Delete software globally
     if ($action === 'delete_software') {
         $id = (int)($_POST['id'] ?? 0);
         if ($id > 0) {
-      // remove lab-level software and any per-pc assignments
-      $stmt = $db->prepare("SELECT lab_room, software FROM lab_software WHERE id = ? LIMIT 1");
-      $stmt->execute([$id]);
-      $row = $stmt->fetch();
-      if ($row) {
-        $lab = $row['lab_room'];
-        $sw  = $row['software'];
-        $db->prepare("DELETE FROM lab_software WHERE id = ?")->execute([$id]);
-        $db->prepare("DELETE FROM pc_software WHERE lab_room = ? AND software = ?")->execute([$lab, $sw]);
-      }
+            $stmt = $db->prepare("SELECT software FROM global_software WHERE id = ? LIMIT 1");
+            $stmt->execute([$id]);
+            $row = $stmt->fetch();
+            if ($row) {
+                $sw = $row['software'];
+                $db->prepare("DELETE FROM global_software WHERE id = ?")->execute([$id]);
+                $db->prepare("DELETE FROM lab_software WHERE software = ?")->execute([$sw]);
+                $db->prepare("DELETE FROM pc_software WHERE software = ?")->execute([$sw]);
+            }
+            ob_clean();
             echo json_encode(['ok' => true]);
         }
         exit;
@@ -154,6 +189,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!empty($_SERVER['HTTP_X_REQUESTED_
             $db->prepare("INSERT INTO lab_pcs (lab_room, pc_number, status, is_enabled) VALUES (?,?,?,?)
                 ON CONFLICT(lab_room, pc_number) DO UPDATE SET status=excluded.status, is_enabled=excluded.is_enabled")
                ->execute([$lab, $pc, $status, $status === 'available' ? 1 : 0]);
+            ob_clean();
+
             echo json_encode(['ok' => true]);
         }
         exit;
@@ -175,6 +212,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!empty($_SERVER['HTTP_X_REQUESTED_
                        ->execute([$lab, $pc, $status, $enabled]);
                 }
             }
+            ob_clean();
+
             echo json_encode(['ok' => true]);
         }
         exit;
@@ -192,6 +231,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!empty($_SERVER['HTTP_X_REQUESTED_
                     ON CONFLICT(lab_room, pc_number) DO UPDATE SET status=excluded.status, is_enabled=excluded.is_enabled")
                    ->execute([$lab, $pc, $status, $enabled]);
             }
+            ob_clean();
+
             echo json_encode(['ok' => true]);
         }
         exit;
@@ -203,47 +244,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!empty($_SERVER['HTTP_X_REQUESTED_
     $pc  = (int)($_POST['pc_number'] ?? 0);
     if (in_array($lab, $lab_rooms) && $pc >= 1 && $pc <= 50) {
       // pc-specific software
-      $stmt = $db->prepare("SELECT id, software, is_enabled FROM pc_software WHERE lab_room=? AND pc_number=? ORDER BY software");
+      $stmt = $db->prepare("SELECT MAX(id) as id, software, MAX(is_enabled) as is_enabled FROM pc_software WHERE lab_room=? AND pc_number=? GROUP BY software ORDER BY software");
       $stmt->execute([$lab, $pc]);
       $pc_rows = $stmt->fetchAll();
       // lab-level software (available to assign)
-      $lstmt = $db->prepare("SELECT id, software, description FROM lab_software WHERE lab_room=? ORDER BY software");
-      $lstmt->execute([$lab]);
-      $lab_rows = $lstmt->fetchAll();
-      // If there are no explicit lab_software rows (data inconsistency or legacy),
-      // fall back to deriving available software from any pc_software records for this lab.
+      // Always use global software list for the assign panel
+      $gstmt = $db->query("SELECT id, software, description FROM global_software ORDER BY software");
+      $lab_rows = $gstmt->fetchAll();
+      // Fallback: if global_software is empty, derive from lab_software
       if (empty($lab_rows)) {
-        $fallback = $db->prepare("SELECT DISTINCT software FROM pc_software WHERE lab_room=? ORDER BY software");
-        $fallback->execute([$lab]);
-        $frows = $fallback->fetchAll();
-        $lab_rows = [];
-        foreach ($frows as $fr) {
-          $lab_rows[] = ['id' => null, 'software' => $fr['software'], 'description' => ''];
-        }
-        // Persist these as lab-level software entries so future calls return them directly
-        try {
-          $insLab = $db->prepare("INSERT OR IGNORE INTO lab_software (lab_room, software, description) VALUES (?,?,?)");
-          foreach ($lab_rows as $lr) {
-            $insLab->execute([$lab, $lr['software'], $lr['description'] ?? '']);
-          }
-          // re-query to get real ids if any were inserted
-          $lstmt->execute([$lab]);
-          $lab_rows = $lstmt->fetchAll();
-        } catch (Exception $e) {
-          // ignore migration errors and fall back to derived list
+        $fbstmt = $db->query("SELECT DISTINCT software, description FROM lab_software ORDER BY software");
+        foreach ($fbstmt->fetchAll() as $fr) {
+          $lab_rows[] = ['id' => null, 'software' => $fr['software'], 'description' => $fr['description'] ?? ''];
         }
       }
-      // If still empty, as a convenience show globally-known lab software (distinct across all labs)
-      if (empty($lab_rows)) {
-        $gstmt = $db->prepare("SELECT DISTINCT software, description FROM lab_software ORDER BY software");
-        $gstmt->execute();
-        $grows = $gstmt->fetchAll();
-        foreach ($grows as $gr) {
-          $lab_rows[] = ['id' => null, 'software' => $gr['software'], 'description' => $gr['description'] ?? ''];
-        }
-      }
+      ob_clean();
+
       echo json_encode(['ok' => true, 'pc_rows' => $pc_rows, 'lab_rows' => $lab_rows]);
     } else {
+      ob_clean();
+
       echo json_encode(['ok' => false]);
     }
     exit;
@@ -257,15 +277,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!empty($_SERVER['HTTP_X_REQUESTED_
     $val = (int)($_POST['is_enabled'] ?? 1);
     if (in_array($lab, $lab_rooms) && $pc >= 1 && $pc <= 50 && $sw !== '') {
       try {
-        $db->prepare("INSERT INTO pc_software (lab_room, pc_number, software, is_enabled) VALUES (?,?,?,?)
-          ON CONFLICT(lab_room, pc_number, software) DO UPDATE SET is_enabled=excluded.is_enabled")
-           ->execute([$lab, $pc, $sw, $val]);
+        // Update existing row first; if none exists, insert
+        $upd = $db->prepare("UPDATE pc_software SET is_enabled=? WHERE lab_room=? AND pc_number=? AND software=?");
+        $upd->execute([$val, $lab, $pc, $sw]);
+        if ($upd->rowCount() === 0) {
+          $db->prepare("INSERT OR IGNORE INTO pc_software (lab_room, pc_number, software, is_enabled) VALUES (?,?,?,?)")
+             ->execute([$lab, $pc, $sw, $val]);
+        }
+        ob_clean();
         echo json_encode(['ok' => true]);
       } catch (Exception $e) {
+        ob_clean();
         echo json_encode(['ok' => false, 'msg' => $e->getMessage()]);
       }
     } else {
-      echo json_encode(['ok' => false]);
+      ob_clean();
+      echo json_encode(['ok' => false, 'msg' => 'Validation failed: lab=' . $lab . ' pc=' . $pc . ' sw=' . $sw]);
     }
     exit;
   }
@@ -285,11 +312,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!empty($_SERVER['HTTP_X_REQUESTED_
           $db->prepare("DELETE FROM pc_software WHERE lab_room=? AND pc_number=? AND software=?")
              ->execute([$lab, $pc, $sw]);
         }
+        ob_clean();
+
         echo json_encode(['ok' => true]);
       } catch (Exception $e) {
+        ob_clean();
+
         echo json_encode(['ok' => false, 'msg' => $e->getMessage()]);
       }
     } else {
+      ob_clean();
+
       echo json_encode(['ok' => false]);
     }
     exit;
@@ -304,15 +337,16 @@ $rows = $db->query("SELECT lab_room, is_enabled FROM lab_settings")->fetchAll();
 foreach ($rows as $r) $lab_enabled[$r['lab_room']] = (int)$r['is_enabled'];
 
 // Software filtered by lab
-$filter_lab = $_GET['filter_lab'] ?? '';
-if ($filter_lab && !in_array($filter_lab, $lab_rooms)) $filter_lab = '';
-if ($filter_lab) {
-    $sw_rows = $db->prepare("SELECT * FROM lab_software WHERE lab_room=? ORDER BY added_at DESC")->execute([$filter_lab]) ? [] : [];
-    $stmt = $db->prepare("SELECT * FROM lab_software WHERE lab_room=? ORDER BY added_at DESC");
-    $stmt->execute([$filter_lab]);
-    $sw_table = $stmt->fetchAll();
-} else {
-    $sw_table = $db->query("SELECT * FROM lab_software ORDER BY lab_room, added_at DESC")->fetchAll();
+// Load software table — global_software if populated, else fall back to lab_software distinct
+$sw_table = $db->query("SELECT * FROM global_software ORDER BY software ASC")->fetchAll();
+if (empty($sw_table)) {
+    // global_software not yet migrated — seed it now from lab_software
+    try {
+        $db->exec("INSERT OR IGNORE INTO global_software (software, description, added_at)
+            SELECT software, MAX(description), MIN(added_at)
+            FROM lab_software GROUP BY software");
+        $sw_table = $db->query("SELECT * FROM global_software ORDER BY software ASC")->fetchAll();
+    } catch (Exception $e) {}
 }
 
 // PC states for selected lab (PC management)
@@ -525,29 +559,23 @@ $nav_admin_active = 'software';
 
     /* Select mode sub-toolbar */
     .pc-sel-toolbar {
-      /* Make the toolbar overlay inside the PC card so it does not reflow other content */
-      position: absolute; left: 0; right: 0; top: 56px; z-index: 200;
+      display: none;
       align-items: center; flex-wrap: wrap; gap: 8px; padding: 10px 20px;
       background: rgba(10,77,140,0.04);
       border-top: 1px solid rgba(204,222,237,0.5);
       border-bottom: 1px solid rgba(204,222,237,0.5);
-      transform-origin: top center; transform: translateY(-6px) scaleY(0.98);
-      opacity: 0; pointer-events: none; transition: opacity 0.18s ease, transform 0.14s ease;
     }
-    .pc-sel-toolbar.active { opacity: 1; transform: translateY(0) scaleY(1); pointer-events: auto; }
+    .pc-sel-toolbar.active { display: flex; }
     .pc-sel-count {
       font-size: 0.8rem; font-weight: 700; color: #0a4d8c; margin-right: 4px;
     }
 
-    /* Dark mode adjustments for select-toolbar: make overlay solid, legible and above other elements */
+    /* Dark mode adjustments for select-toolbar */
     html.dark-theme .pc-sel-toolbar {
       background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)) !important;
       color: #ffffff !important;
-      box-shadow: 0 12px 34px rgba(0,0,0,0.6) !important;
       border-top: 1px solid rgba(255,255,255,0.06) !important;
       border-bottom: 1px solid rgba(255,255,255,0.06) !important;
-      z-index: 10050 !important;
-      backdrop-filter: none !important;
       padding: 10px 18px !important;
     }
     html.dark-theme .pc-sel-toolbar .pc-sel-count { color: #ffffff !important; }
@@ -775,31 +803,12 @@ $nav_admin_active = 'software';
   <div class="admin-card" style="margin-bottom:22px;">
     <div class="admin-card-header">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-      Add Software to Lab
+      Manage Software
     </div>
     <div class="sw-add-form">
-      <select id="swLab">
-        <?php foreach ($lab_rooms as $r): ?>
-        <option><?= htmlspecialchars($r) ?></option>
-        <?php endforeach; ?>
-      </select>
       <input type="text" id="swName" placeholder="Software name (e.g. NetBeans)" style="min-width:220px;"/>
       <input type="text" id="swDesc" placeholder="Description (optional)" style="min-width:200px;"/>
       <button class="admin-btn blue" onclick="addSoftware()">+ Add Software</button>
-    </div>
-
-    <!-- Filter bar -->
-    <div class="sw-filter-bar">
-      <label>Filter by Lab:</label>
-      <select onchange="location='AdminSoftware.php?filter_lab='+this.value+'&pc_lab=<?= urlencode($pc_lab) ?>'">
-        <option value="">All Labs</option>
-        <?php foreach ($lab_rooms as $r): ?>
-        <option value="<?= htmlspecialchars($r) ?>" <?= $filter_lab === $r ? 'selected':'' ?>><?= htmlspecialchars($r) ?></option>
-        <?php endforeach; ?>
-      </select>
-      <?php if ($filter_lab): ?>
-      <a class="clear" href="AdminSoftware.php?pc_lab=<?= urlencode($pc_lab) ?>">✕ Clear filter</a>
-      <?php endif; ?>
     </div>
 
     <!-- Software Table -->
@@ -810,7 +819,6 @@ $nav_admin_active = 'software';
       <table class="sw-table">
         <thead>
           <tr>
-            <th>Lab</th>
             <th>Software</th>
             <th>Description</th>
             <th>Added</th>
@@ -820,7 +828,6 @@ $nav_admin_active = 'software';
         <tbody id="swTableBody">
           <?php foreach ($sw_table as $sw): ?>
           <tr id="sw-row-<?= $sw['id'] ?>">
-            <td><span class="lab-badge"><?= htmlspecialchars($sw['lab_room']) ?></span></td>
             <td style="font-weight:600;"><?= htmlspecialchars($sw['software']) ?></td>
             <td><?= htmlspecialchars($sw['description'] ?: '—') ?></td>
             <td><?= date('Y-m-d', strtotime($sw['added_at'])) ?></td>
@@ -975,32 +982,56 @@ $nav_admin_active = 'software';
 <!-- Bulk Assign Modal (for multiple selected PCs) -->
 <div id="bulkAssignModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:100001;align-items:center;justify-content:center;">
   <div style="width:720px;max-width:96%;margin:0 auto;display:flex;align-items:center;justify-content:center;height:100%;">
-    <div style="width:100%;background:#fff;padding:18px;border-radius:14px;box-shadow:0 12px 40px rgba(10,77,140,0.18);max-height:92vh;overflow:auto;">
+    <div class="bulk-modal-inner">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <div style="font-weight:800;color:#0a4d8c;">Assign Software to Selected PCs — <span id="bulkAssignTitle"></span></div>
+        <div class="bulk-modal-title">Assign Software to Selected PCs — <span id="bulkAssignTitle"></span></div>
         <div>
-          <button class="neutral-btn" onclick="closeBulkAssignModal()" style="background:#f0f4f8;border:1px solid #e2e8f0;padding:6px 10px;border-radius:8px;">Close</button>
+          <button class="neutral-btn bulk-modal-close-btn" onclick="closeBulkAssignModal()">Close</button>
         </div>
       </div>
       <div style="display:flex;gap:12px;">
         <div style="flex:1;">
-          <div style="font-weight:700;margin-bottom:8px;color:#0a4d8c;">Lab Software</div>
-          <div id="bulkLabSwList" style="display:flex;flex-direction:column;gap:8px;max-height:420px;overflow:auto;padding-right:6px;border-right:1px solid #f1f5f9;padding-right:12px;"></div>
+          <div class="bulk-modal-section-label">Lab Software</div>
+          <div id="bulkLabSwList" class="bulk-sw-list"></div>
         </div>
         <div style="width:260px;padding-left:12px;">
-          <div style="font-weight:700;margin-bottom:8px;color:#0a4d8c;">Selected PCs</div>
-          <div id="bulkSelectedList" style="font-size:0.9rem;color:#1a2535;max-height:420px;overflow:auto;"></div>
+          <div class="bulk-modal-section-label">Selected PCs</div>
+          <div id="bulkSelectedList" class="bulk-pc-list"></div>
         </div>
       </div>
       <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end;">
-  <button type="button" class="primary-btn" onclick="applyAssignToSelected()" style="padding:8px 12px;border-radius:8px;border:none;background:#16a34a;color:white;">Apply to Selected</button>
-  <button type="button" class="neutral-btn" onclick="closeBulkAssignModal()" style="padding:8px 12px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;">Cancel</button>
+        <button type="button" class="primary-btn bulk-apply-btn" onclick="applyAssignToSelected()">Apply to Selected</button>
+        <button type="button" class="neutral-btn bulk-modal-close-btn" onclick="closeBulkAssignModal()">Cancel</button>
       </div>
     </div>
   </div>
 </div>
 
 <style>
+
+  /* ── Bulk Assign Modal ── */
+  .bulk-modal-inner {
+    width: 100%;
+    background: #ffffff;
+    padding: 18px;
+    border-radius: 14px;
+    box-shadow: 0 12px 40px rgba(10,77,140,0.18);
+    max-height: 92vh;
+    overflow: auto;
+  }
+  .bulk-modal-title { font-weight: 800; color: #0a4d8c; }
+  .bulk-modal-section-label { font-weight: 700; margin-bottom: 8px; color: #0a4d8c; }
+  .bulk-sw-list { display:flex; flex-direction:column; gap:8px; max-height:420px; overflow:auto; padding-right:12px; border-right:1px solid #f1f5f9; }
+  .bulk-pc-list { font-size:0.9rem; color:#1a2535; max-height:420px; overflow:auto; }
+  .bulk-modal-close-btn { background:#f0f4f8; border:1px solid #e2e8f0; padding:6px 10px; border-radius:8px; }
+  .bulk-apply-btn { padding:8px 12px; border-radius:8px; border:none; background:#16a34a; color:white; }
+
+  html.dark-theme .bulk-modal-inner { background:#0f1724 !important; color:#ffffff !important; border:1px solid rgba(255,255,255,0.06); }
+  html.dark-theme .bulk-modal-title, html.dark-theme .bulk-modal-section-label { color:#60a5fa !important; }
+  html.dark-theme .bulk-sw-list { border-right-color:rgba(255,255,255,0.08) !important; }
+  html.dark-theme .bulk-pc-list { color:#cbd5e1 !important; }
+  html.dark-theme .bulk-modal-close-btn { background:rgba(255,255,255,0.08) !important; border-color:rgba(255,255,255,0.1) !important; color:#ffffff !important; }
+  html.dark-theme .bulk-apply-btn { background:#16a34a !important; color:#ffffff !important; }
   /* Strong final dark-mode overrides (ensures inline-styled panels get themed) */
   html.dark-theme, .dark-theme {
     background: #0b1220 !important;
@@ -1068,12 +1099,16 @@ $nav_admin_active = 'software';
   }
 
   /* Modal (pcSwModal / bulkAssignModal) — ensure neutral buttons (Close/Done/Cancel) are visible in dark mode */
-  html.dark-theme #pcSwModal .pc-modal button,
+  html.dark-theme #pcSwModal .pc-modal button:not(.sw-toggle-btn),
   html.dark-theme #bulkAssignModal button {
     /* neutral default: slightly light background with dark text for contrast */
     background: rgba(255,255,255,0.06) !important;
     color: #0b1220 !important;
     border-color: rgba(255,255,255,0.06) !important;
+  }
+  /* Software toggle buttons keep their solid green/red colors in dark mode */
+  html.dark-theme #pcSwModal .pc-modal button.sw-toggle-btn {
+    color: white !important;
   }
   /* Preserve colored action buttons (Assign all / Unassign all / Apply) with white text */
   html.dark-theme #pcSwModal .pc-modal button[onclick*="assignAllLabSoftwareToPc"],
@@ -1173,16 +1208,15 @@ function toggleLab(lab, key, val) {
 
 // ── Software ──────────────────────────────────────────────────────────────────
 function addSoftware() {
-  const lab  = document.getElementById('swLab').value;
   const sw   = document.getElementById('swName').value.trim();
   const desc = document.getElementById('swDesc').value.trim();
   if (!sw) { alert('Please enter a software name.'); return; }
-  post({ action: 'add_software', lab_room: lab, software: sw, description: desc })
+  post({ action: 'add_software', software: sw, description: desc })
     .then(r => {
       if (!r.ok) { alert(r.msg || 'Error adding software.'); return; }
       document.getElementById('swName').value = '';
       document.getElementById('swDesc').value = '';
-      showToast('✓ Software added! Reload to see table.');
+      showToast('✓ Software added to all labs!');
       setTimeout(() => location.reload(), 1200);
     });
 }
@@ -1384,8 +1418,9 @@ function renderPcSoftware(data) {
       btn.textContent = r.is_enabled == 1 ? 'Available' : 'Unavailable';
       btn.style.padding = '6px 10px'; btn.style.borderRadius = '8px'; btn.style.border = 'none';
       btn.style.cursor = 'pointer';
+      btn.className = 'sw-toggle-btn';
       if (r.is_enabled == 1) { btn.style.background = '#16a34a'; btn.style.color = 'white'; }
-      else { btn.style.background = '#f8d7da'; btn.style.color = '#902026'; }
+      else { btn.style.background = '#dc2626'; btn.style.color = 'white'; }
       btn.onclick = function() {
         // If PC is disabled, prevent toggling
         if (data._pc_disabled) { showToast('✕ PC disabled — cannot change software'); return; }
@@ -1395,10 +1430,10 @@ function renderPcSoftware(data) {
             r.is_enabled = newVal;
             btn.textContent = r.is_enabled == 1 ? 'Available' : 'Unavailable';
             if (r.is_enabled == 1) { btn.style.background = '#16a34a'; btn.style.color = 'white'; }
-            else { btn.style.background = '#f8d7da'; btn.style.color = '#902026'; }
+            else { btn.style.background = '#dc2626'; btn.style.color = 'white'; }
             showToast('✓ Updated');
           } else {
-            showToast('✕ Could not update');
+            showToast('✕ Could not update' + (resp && resp.msg ? ': ' + resp.msg : ''));
           }
         }).catch(() => showToast('✕ Network error'));
       };
