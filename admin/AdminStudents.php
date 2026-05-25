@@ -7,8 +7,17 @@ $db = get_db();
 $success = '';
 
 if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
-    $db->prepare("DELETE FROM students WHERE id = ?")->execute([(int)$_GET['delete']]);
-    header('Location: AdminStudents.php?msg=deleted'); exit;
+    $sid = (int)$_GET['delete'];
+    try {
+        // Delete related records first to satisfy foreign key constraints
+        $db->prepare("DELETE FROM sitin_logs   WHERE student_id = ?")->execute([$sid]);
+        $db->prepare("DELETE FROM testimonials  WHERE student_id = ?")->execute([$sid]);
+        // Now safe to delete the student
+        $db->prepare("DELETE FROM students WHERE id = ?")->execute([$sid]);
+        header('Location: AdminStudents.php?msg=deleted'); exit;
+    } catch (Exception $e) {
+        header('Location: AdminStudents.php?msg=error'); exit;
+    }
 }
 
 if (isset($_GET['reset_all'])) {
@@ -24,6 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
 
 $msg = $_GET['msg'] ?? '';
 if ($msg === 'deleted') $success = 'Student deleted successfully.';
+if ($msg === 'error')   $success = 'Could not delete student. Please try again.';
 if ($msg === 'updated') $success = 'Student updated successfully.';
 if ($msg === 'reset')   $success = 'All sessions have been reset.';
 
