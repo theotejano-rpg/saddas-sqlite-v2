@@ -341,6 +341,7 @@ body.student-page a { text-decoration: none !important; }
                 <tr>
                     <th>#</th>
                     <th>Lab Room</th>
+                    <th>PC</th>
                     <th>Purpose</th>
                     <th>Date</th>
                     <th>Time In</th>
@@ -358,6 +359,7 @@ body.student-page a { text-decoration: none !important; }
             <tr data-status="<?= $log['status'] ?>">
                 <td><?= $i + 1 ?></td>
                 <td><strong><?= htmlspecialchars($log['lab_room']) ?></strong></td>
+                <td><?= $log['pc_number'] ? 'PC #'.htmlspecialchars($log['pc_number']) : '<span style="color:#aaa;">—</span>' ?></td>
                 <td><?= htmlspecialchars($log['purpose']) ?></td>
                 <td><?= $date_in->format('M d, Y') ?></td>
                 <td><?= $date_in->format('h:i A') ?></td>

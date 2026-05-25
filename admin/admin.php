@@ -84,6 +84,10 @@ $nav_admin_active = 'home';
       border-color: rgba(255,255,255,0.07) !important;
       color: var(--ds-text) !important;
     }
+    .dark-theme .ann-form select option {
+      background: #1e2a3a !important;
+      color: #e8edf3 !important;
+    }
     .dark-theme .ann-form input::placeholder,
     .dark-theme .ann-form textarea::placeholder { color: rgba(255,255,255,0.28) !important; }
     .dark-theme .ann-form input:focus,

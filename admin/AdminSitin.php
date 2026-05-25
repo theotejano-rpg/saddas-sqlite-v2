@@ -74,7 +74,9 @@ $msg = $_GET['msg'] ?? '';
 $pending_sitins = $db->query("SELECT sl.*, s.first_name, s.last_name, s.student_id as sid, (s.sessions-s.used) as remaining FROM sitin_logs sl JOIN students s ON sl.student_id=s.id WHERE sl.status='pending' ORDER BY sl.date_in ASC")->fetchAll();
 $current_sitins = $db->query("SELECT sl.*, s.first_name, s.last_name, s.student_id as sid, (s.sessions-s.used) as remaining FROM sitin_logs sl JOIN students s ON sl.student_id=s.id WHERE sl.status='active' ORDER BY sl.date_in DESC")->fetchAll();
 $purposes  = ['C / C++','Java','Python','PHP / Web Development','Database (SQL)','Networking','Research / Thesis','Other'];
-$lab_rooms = ['Lab 524','Lab 526','Lab 528','Lab 530'];
+$lab_rows  = $db->query("SELECT lab_room FROM lab_settings ORDER BY lab_room")->fetchAll();
+$lab_rooms = array_column($lab_rows, 'lab_room');
+if (empty($lab_rooms)) $lab_rooms = ['Lab 524','Lab 526','Lab 528','Lab 530'];
 $nav_admin_active = 'sitin';
 ?>
 <!DOCTYPE html>

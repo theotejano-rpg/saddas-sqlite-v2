@@ -4,6 +4,24 @@ require_once 'db.php';
 if (empty($_SESSION['admin'])) { header('Location: ../Login.php'); exit; }
 $db = get_db();
 
+if (isset($_GET['approve']) && is_numeric($_GET['approve'])) {
+    $id = (int)$_GET['approve'];
+    $row = $db->prepare("SELECT sl.*, s.first_name, s.last_name, s.student_id as sid FROM sitin_logs sl JOIN students s ON sl.student_id=s.id WHERE sl.id=? LIMIT 1");
+    $row->execute([$id]); $row = $row->fetch();
+    $db->prepare("UPDATE sitin_logs SET status='active' WHERE id=? AND status='pending'")->execute([$id]);
+    if ($row) log_notification('sitin_approved', "{$row['first_name']} {$row['last_name']} ({$row['sid']})'s reservation was approved for {$row['lab_room']}.");
+    header('Location: AdminReservation.php?msg=approved'); exit;
+}
+
+if (isset($_GET['reject']) && is_numeric($_GET['reject'])) {
+    $id = (int)$_GET['reject'];
+    $row = $db->prepare("SELECT sl.*, s.first_name, s.last_name, s.student_id as sid FROM sitin_logs sl JOIN students s ON sl.student_id=s.id WHERE sl.id=? LIMIT 1");
+    $row->execute([$id]); $row = $row->fetch();
+    $db->prepare("UPDATE sitin_logs SET status='cancelled', date_out=datetime('now') WHERE id=? AND status='pending'")->execute([$id]);
+    if ($row) log_notification('sitin_rejected', "{$row['first_name']} {$row['last_name']} ({$row['sid']})'s reservation was rejected.");
+    header('Location: AdminReservation.php?msg=rejected'); exit;
+}
+
 $reservations = $db->query("
     SELECT sl.*, s.first_name, s.last_name, s.student_id as sid
     FROM sitin_logs sl JOIN students s ON sl.student_id = s.id
@@ -76,6 +94,28 @@ $nav_admin_active = 'reservation';
     .res-toolbar input:focus { border-color: #1877c9; }
 
     .res-table-wrap { overflow-x: auto; }
+
+    .action-btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 5px 13px; border-radius: 7px; border: none;
+      font-family: 'DM Sans', sans-serif; font-size: 0.78rem;
+      font-weight: 600; cursor: pointer; text-decoration: none;
+      transition: all 0.15s;
+    }
+    .action-btn.approve { background: rgba(34,197,94,0.12); color: #16a34a; }
+    .action-btn.approve:hover { background: rgba(34,197,94,0.22); }
+    .action-btn.reject  { background: rgba(220,38,38,0.10); color: #dc2626; }
+    .action-btn.reject:hover  { background: rgba(220,38,38,0.20); }
+
+    .toast-msg {
+      position: fixed; top: 20px; right: 24px; z-index: 9999;
+      padding: 10px 20px; border-radius: 10px; font-size: 0.84rem; font-weight: 600;
+      background: #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+      border-left: 4px solid #16a34a; color: #16a34a;
+      animation: slideIn 0.3s ease;
+    }
+    .toast-msg.reject { border-color: #dc2626; color: #dc2626; }
+    @keyframes slideIn { from { opacity:0; transform:translateX(30px); } to { opacity:1; transform:translateX(0); } }
   </style>
   <style>
     /* ── Shared dark theme (matches AdminSoftware design) ── */
@@ -245,6 +285,9 @@ $nav_admin_active = 'reservation';
     .dark-theme .badge-completed { background: rgba(74,163,255,0.12) !important; color: #93c5fd !important; }
     .dark-theme .badge-cancelled, .dark-theme .status-badge.rejected { background: rgba(220,38,38,0.15) !important; color: #fca5a5 !important; }
 
+    .dark-theme .action-btn.approve { background: rgba(34,197,94,0.12) !important; color: #86efac !important; }
+    .dark-theme .action-btn.reject  { background: rgba(220,38,38,0.10) !important; color: #fca5a5 !important; }
+
     /* Action buttons */
     .dark-theme .at-action-btn.approve { background: rgba(34,197,94,0.12) !important; color: #86efac !important; }
     .dark-theme .at-action-btn.reject  { background: rgba(220,38,38,0.1) !important; color: #fca5a5 !important; }
@@ -293,10 +336,11 @@ $nav_admin_active = 'reservation';
             <th>Student ID</th>
             <th>Name</th>
             <th>Lab</th>
+            <th>PC</th>
             <th>Purpose</th>
             <th>Date In</th>
-            <th>Date Out</th>
             <th>Status</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -306,14 +350,24 @@ $nav_admin_active = 'reservation';
             <td><?= htmlspecialchars($r['sid']) ?></td>
             <td><?= htmlspecialchars($r['first_name'].' '.$r['last_name']) ?></td>
             <td><?= htmlspecialchars($r['lab_room']) ?></td>
+            <td><?= $r['pc_number'] ? 'PC #'.htmlspecialchars($r['pc_number']) : '<span style="color:#aaa;">—</span>' ?></td>
             <td><?= htmlspecialchars($r['purpose']) ?></td>
-            <td><?= htmlspecialchars($r['date_in']) ?></td>
-            <td><?= $r['date_out'] ? htmlspecialchars($r['date_out']) : '<span style="color:#aaa;font-style:italic;">Still active</span>' ?></td>
+            <td><?php $d = new DateTime(str_replace('T',' ',$r['date_in'])); echo $d->format('M d, Y h:i A'); ?></td>
             <td><span class="badge badge-<?= $r['status'] ?>"><?= ucfirst($r['status']) ?></span></td>
+            <td>
+              <?php if ($r['status'] === 'pending'): ?>
+                <a href="AdminReservation.php?approve=<?= $r['id'] ?>" class="action-btn approve"
+                   onclick="return confirm('Approve this reservation?')">✓ Accept</a>
+                <a href="AdminReservation.php?reject=<?= $r['id'] ?>"  class="action-btn reject"
+                   onclick="return confirm('Reject this reservation?')" style="margin-left:4px;">✕ Reject</a>
+              <?php else: ?>
+                <span style="color:#aaa;font-size:0.78rem;font-style:italic;"><?= ucfirst($r['status']) ?></span>
+              <?php endif; ?>
+            </td>
           </tr>
           <?php endforeach; ?>
           <?php if (empty($reservations)): ?>
-            <tr><td colspan="8" class="empty-state">No reservations yet.</td></tr>
+            <tr><td colspan="9" class="empty-state">No reservations yet.</td></tr>
           <?php endif; ?>
         </tbody>
       </table>
@@ -322,6 +376,17 @@ $nav_admin_active = 'reservation';
 </main>
 <?php include __DIR__ . '/footer.php'; ?>
 <script>
+<?php if (isset($_GET['msg'])): ?>
+(function(){
+  const msg = <?= json_encode($_GET['msg']) ?>;
+  const el = document.createElement('div');
+  el.className = 'toast-msg' + (msg === 'rejected' ? ' reject' : '');
+  el.textContent = msg === 'approved' ? '✓ Reservation approved!' : '✕ Reservation rejected.';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+})();
+<?php endif; ?>
+
 function filterTable() {
   const q = document.getElementById('tableSearch').value.toLowerCase();
   document.querySelectorAll('#resTable tbody tr').forEach(r => {

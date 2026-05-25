@@ -15,8 +15,18 @@ $remaining = $student['sessions'] - $student['used'];
 $errors    = [];
 $success   = '';
 
-$lab_rooms    = ['Lab 524', 'Lab 526', 'Lab 528', 'Lab 530'];
-$all_purposes = ['C / C++', 'Java', 'Python', 'PHP / Web Development', 'Database (SQL)', 'Networking', 'Research / Thesis', 'Other'];
+// Pull lab rooms dynamically from DB so new labs added by admin appear automatically
+$lab_rows  = $db->query("SELECT lab_room, is_enabled FROM lab_settings ORDER BY lab_room")->fetchAll();
+$lab_rooms = array_column($lab_rows, 'lab_room');
+$lab_settings = [];
+foreach ($lab_rows as $row) {
+    $lab_settings[$row['lab_room']] = $row['is_enabled'] == 1 ? 'open' : 'closed';
+}
+// Only show globally enabled software as purposes
+$sw_enabled = $db->query("SELECT DISTINCT software FROM pc_software WHERE is_enabled=1 ORDER BY software")->fetchAll(PDO::FETCH_COLUMN);
+// Fallback hardcoded list for non-software purposes always shown
+$non_sw_purposes = ['Research / Thesis', 'Other'];
+$all_purposes = array_values(array_unique(array_merge($sw_enabled ?: ['C / C++','Java','Python','PHP / Web Development','Database (SQL)','Networking'], $non_sw_purposes)));
 
 // --- Build per-lab PC data (occupied, disabled, software) ---
 $lab_data = [];
@@ -26,12 +36,17 @@ foreach ($lab_rooms as $room) {
     $s->execute([$room]);
     $occupied = array_column($s->fetchAll(), 'pc_number');
 
-    // Disabled PCs
-    $d = $db->prepare("SELECT pc_number FROM lab_pcs WHERE lab_room=? AND is_enabled=0");
+    // Disabled PCs — use status column (authoritative)
+    $d = $db->prepare("SELECT pc_number FROM lab_pcs WHERE lab_room=? AND status='disabled'");
     $d->execute([$room]);
     $disabled = array_column($d->fetchAll(), 'pc_number');
 
-    // Software per PC (only enabled ones)
+    // Maintenance PCs
+    $m = $db->prepare("SELECT pc_number FROM lab_pcs WHERE lab_room=? AND status='maintenance'");
+    $m->execute([$room]);
+    $maintenance = array_column($m->fetchAll(), 'pc_number');
+
+    // Software per PC — only ENABLED ones
     $sw = $db->prepare("SELECT pc_number, software FROM pc_software WHERE lab_room=? AND is_enabled=1");
     $sw->execute([$room]);
     $sw_map = [];
@@ -40,9 +55,10 @@ foreach ($lab_rooms as $room) {
     }
 
     $lab_data[$room] = [
-        'occupied' => $occupied,
-        'disabled' => $disabled,
-        'software' => $sw_map,
+        'occupied'    => $occupied,
+        'disabled'    => $disabled,
+        'maintenance' => $maintenance,
+        'software'    => $sw_map,
     ];
 }
 
@@ -74,9 +90,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Check PC disabled
     if (empty($errors) && $pc_number !== null) {
-        $dis = $db->prepare("SELECT id FROM lab_pcs WHERE lab_room=? AND pc_number=? AND is_enabled=0 LIMIT 1");
+        $dis = $db->prepare("SELECT id FROM lab_pcs WHERE lab_room=? AND pc_number=? AND status='disabled' LIMIT 1");
         $dis->execute([$lab_room, $pc_number]);
-        if ($dis->fetch()) $errors['pc_number'] = 'That PC is disabled. Please choose another.';
+        if ($dis->fetch()) $errors['pc_number'] = 'PC #'.$pc_number.' is currently disabled by the admin. Please select another PC.';
+    }
+
+    // Check PC under maintenance
+    if (empty($errors) && $pc_number !== null) {
+        $mnt = $db->prepare("SELECT id FROM lab_pcs WHERE lab_room=? AND pc_number=? AND status='maintenance' LIMIT 1");
+        $mnt->execute([$lab_room, $pc_number]);
+        if ($mnt->fetch()) $errors['pc_number'] = 'PC #'.$pc_number.' is currently under maintenance. Please select another PC.';
     }
 
     // Check PC occupied
@@ -84,6 +107,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $taken = $db->prepare("SELECT id FROM sitin_logs WHERE lab_room=? AND pc_number=? AND status IN ('active','pending') LIMIT 1");
         $taken->execute([$lab_room, $pc_number]);
         if ($taken->fetch()) $errors['pc_number'] = 'That PC is already taken. Please choose another.';
+    }
+
+    // Check software is not disabled for the chosen PC
+    if (empty($errors) && $pc_number !== null && $purpose !== '') {
+        $sw_check = $db->prepare("SELECT is_enabled FROM pc_software WHERE lab_room=? AND pc_number=? AND software=? LIMIT 1");
+        $sw_check->execute([$lab_room, $pc_number, $purpose]);
+        $sw_row = $sw_check->fetch();
+        if ($sw_row && $sw_row['is_enabled'] == 0) {
+            $errors['purpose'] = '"'.$purpose.'" is not available on that PC. Please choose another software.';
+        }
     }
 
     if (empty($errors) && $remaining <= 0)
@@ -146,17 +179,32 @@ $nav_student_active = 'reservation';
     .pc-legend { display:flex; gap:16px; margin-bottom:14px; flex-wrap:wrap; }
     .pc-legend-item { display:flex; align-items:center; gap:6px; font-size:.78rem; color:#4a5568; }
     .pc-legend-dot { width:14px; height:14px; border-radius:3px; }
-    .pc-legend-dot.available { background:#ebf8ff; border:2px solid #90cdf4; }
-    .pc-legend-dot.occupied  { background:#fff5f5; border:2px solid #fc8181; }
-    .pc-legend-dot.disabled  { background:#f7fafc; border:2px solid #cbd5e0; }
-    .pc-legend-dot.selected  { background:#2b6cb0; border:2px solid #2b6cb0; }
+    .pc-legend-dot.available    { background:#ebf8ff; border:2px solid #90cdf4; }
+    .pc-legend-dot.occupied     { background:#fff5f5; border:2px solid #fc8181; }
+    .pc-legend-dot.disabled     { background:#f7fafc; border:2px solid #cbd5e0; }
+    .pc-legend-dot.maintenance  { background:#fffbeb; border:2px solid #f6ad55; }
+    .pc-legend-dot.selected     { background:#2b6cb0; border:2px solid #2b6cb0; }
     .pc-grid { display:grid; grid-template-columns:repeat(10,1fr); gap:6px; margin-bottom:20px; }
-    .pc-seat { aspect-ratio:1; border-radius:7px; border:2px solid #90cdf4; background:#ebf8ff; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; transition:all .15s; font-size:.62rem; font-weight:600; color:#2b6cb0; user-select:none; }
-    .pc-seat:hover:not(.occupied):not(.disabled-seat) { background:#bee3f8; transform:scale(1.08); }
-    .pc-seat.occupied    { background:#fff5f5; border-color:#fc8181; color:#c53030; cursor:not-allowed; }
+    .pc-seat { aspect-ratio:1; border-radius:7px; border:2px solid #90cdf4; background:#ebf8ff; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; transition:all .15s; font-size:.62rem; font-weight:600; color:#2b6cb0; user-select:none; position:relative; }
+    .pc-seat:hover:not(.occupied):not(.disabled-seat):not(.maintenance-seat) { background:#bee3f8; transform:scale(1.08); }
+    .pc-seat.occupied      { background:#fff5f5; border-color:#fc8181; color:#c53030; cursor:not-allowed; }
     .pc-seat.disabled-seat { background:#f7fafc; border-color:#cbd5e0; color:#a0aec0; cursor:not-allowed; }
-    .pc-seat.selected    { background:#2b6cb0; border-color:#2b6cb0; color:#fff; transform:scale(1.08); }
+    .pc-seat.maintenance-seat { background:#fffbeb; border-color:#f6ad55; color:#b7791f; cursor:not-allowed; }
+    .pc-seat.selected      { background:#2b6cb0; border-color:#2b6cb0; color:#fff; transform:scale(1.08); }
     .pc-seat svg { width:12px; height:12px; margin-bottom:1px; }
+
+    /* Tooltip on hover */
+    .pc-seat .pc-tooltip {
+      display:none; position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%);
+      background:#1a202c; color:#fff; font-size:0.7rem; font-weight:500;
+      padding:5px 10px; border-radius:7px; white-space:nowrap; z-index:999;
+      pointer-events:none; box-shadow:0 4px 12px rgba(0,0,0,0.2);
+    }
+    .pc-seat .pc-tooltip::after {
+      content:''; position:absolute; top:100%; left:50%; transform:translateX(-50%);
+      border:5px solid transparent; border-top-color:#1a202c;
+    }
+    .pc-seat:hover .pc-tooltip { display:block; }
 
     /* Software panel inside modal */
     .pc-sw-panel { background:#f7fafc; border-radius:10px; padding:12px 14px; margin-bottom:16px; display:none; }
@@ -216,10 +264,16 @@ $nav_student_active = 'reservation';
             <select id="lab_room" name="lab_room" onchange="onLabRoomChange(this.value)">
               <option value="">— Select a room —</option>
               <?php foreach ($lab_rooms as $room): ?>
-                <option value="<?= $room ?>"<?= ($_POST['lab_room'] ?? '') === $room ? ' selected' : '' ?>><?= htmlspecialchars($room) ?></option>
+                <?php $isClosed = $lab_settings[$room] === 'closed'; ?>
+                <option value="<?= $room ?>"
+                  <?= ($_POST['lab_room'] ?? '') === $room ? 'selected' : '' ?>
+                  <?= $isClosed ? 'disabled' : '' ?>>
+                  <?= htmlspecialchars($room) ?><?= $isClosed ? ' — Closed by Admin' : '' ?>
+                </option>
               <?php endforeach; ?>
             </select>
             <?php if (isset($errors['lab_room'])): ?><span class="res-field-msg"><?= htmlspecialchars($errors['lab_room']) ?></span><?php endif; ?>
+            <span id="lab_status_msg" style="display:none;color:#b7791f;background:#fffbeb;border:1px solid #f6ad55;border-radius:8px;padding:7px 12px;font-size:0.82rem;font-weight:500;margin-top:6px;display:none;"></span>
           </div>
 
           <!-- PC Seat -->
@@ -333,7 +387,8 @@ $nav_student_active = 'reservation';
       <div class="pc-legend-item"><div class="pc-legend-dot available"></div> Available</div>
       <div class="pc-legend-item"><div class="pc-legend-dot occupied"></div> Occupied</div>
       <div class="pc-legend-item"><div class="pc-legend-dot disabled"></div> Disabled</div>
-      <div class="pc-legend-item"><div class="pc-legend-dot selected"></div> Your selection</div>
+      <div class="pc-legend-item"><div class="pc-legend-dot maintenance"></div> Under Maintenance</div>
+      <div class="pc-legend-item"><div class="pc-legend-dot selected"></div> Your Selection</div>
     </div>
     <div class="pc-grid" id="pc_grid"></div>
 
@@ -351,14 +406,16 @@ $nav_student_active = 'reservation';
 </div>
 
 <?php
-$labDataJson   = json_encode($lab_data);
-$allPurposes   = json_encode($all_purposes);
+$labDataJson     = json_encode($lab_data);
+$allPurposes     = json_encode($all_purposes);
+$labSettingsJson = json_encode($lab_settings);
 ?>
 <script>
-const labData    = <?= $labDataJson ?>;
+const labData     = <?= $labDataJson ?>;
 const allPurposes = <?= $allPurposes ?>;
-let selectedPc   = null;
-let currentRoom  = '';
+const labSettings = <?= $labSettingsJson ?>;
+let selectedPc  = null;
+let currentRoom = '';
 
 function onLabRoomChange(room) {
   selectedPc = null;
@@ -366,13 +423,28 @@ function onLabRoomChange(room) {
   document.getElementById('pc_number_input').value = '';
   document.getElementById('pc_trigger_text').textContent = 'Click to select a PC seat';
   document.getElementById('pc_trigger').classList.toggle('visible', !!room);
-  // Reset purpose
+
+  // Show lab closed warning inline
+  const labMsg = document.getElementById('lab_status_msg');
+  if (labMsg) {
+    if (room && labSettings[room] === 'closed') {
+      labMsg.textContent = '⚠️ ' + room + ' is currently closed by the admin. Please choose another lab.';
+      labMsg.style.display = 'block';
+      document.getElementById('pc_trigger').classList.remove('visible');
+    } else {
+      labMsg.style.display = 'none';
+    }
+  }
   updatePurposeDropdown(null);
 }
 
 function openPcModal() {
   currentRoom = document.getElementById('lab_room').value;
   if (!currentRoom) return;
+  if (labSettings[currentRoom] === 'closed') {
+    alert('⚠️ ' + currentRoom + ' is currently closed by the admin. Please select a different lab room.');
+    return;
+  }
   document.getElementById('pc_modal_sub').textContent = 'Choose an available seat in ' + currentRoom + '.';
   buildGrid();
   document.getElementById('pc_modal').classList.add('active');
@@ -383,28 +455,43 @@ function closePcModal() {
 }
 
 function buildGrid() {
-  const grid     = document.getElementById('pc_grid');
-  const data     = labData[currentRoom] || {};
-  const occupied = data.occupied || [];
-  const disabled = data.disabled || [];
+  const grid        = document.getElementById('pc_grid');
+  const data        = labData[currentRoom] || {};
+  const occupied    = data.occupied    || [];
+  const disabled    = data.disabled    || [];
+  const maintenance = data.maintenance || [];
   grid.innerHTML = '';
 
   for (let i = 1; i <= 50; i++) {
-    const isOccupied = occupied.includes(i);
-    const isDisabled = disabled.includes(i);
-    const isSelected = selectedPc === i;
+    const isOccupied    = occupied.includes(i);
+    const isDisabled    = disabled.includes(i);
+    const isMaintenance = maintenance.includes(i);
+    const isSelected    = selectedPc === i;
 
     const seat = document.createElement('div');
     let cls = 'pc-seat';
-    if (isOccupied)  cls += ' occupied';
-    if (isDisabled)  cls += ' disabled-seat';
-    if (isSelected)  cls += ' selected';
+    if (isOccupied)    cls += ' occupied';
+    if (isDisabled)    cls += ' disabled-seat';
+    if (isMaintenance) cls += ' maintenance-seat';
+    if (isSelected)    cls += ' selected';
     seat.className = cls;
     seat.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>${i}`;
 
-    if (isDisabled)  seat.title = 'PC ' + i + ' — Disabled by admin';
-    else if (isOccupied) seat.title = 'PC ' + i + ' — Occupied';
-    else { seat.title = 'PC ' + i; seat.onclick = () => selectSeat(i); }
+    let tooltipMsg = '';
+    if (isOccupied)         tooltipMsg = `PC ${i} — Currently in use by another student`;
+    else if (isDisabled)    tooltipMsg = `PC ${i} — Disabled by admin, unavailable`;
+    else if (isMaintenance) tooltipMsg = `PC ${i} — Under maintenance, please choose another`;
+    else if (isSelected)    tooltipMsg = `PC ${i} — Your selected seat`;
+    else                    tooltipMsg = `PC ${i} — Click to select`;
+
+    const tooltip = document.createElement('span');
+    tooltip.className = 'pc-tooltip';
+    tooltip.textContent = tooltipMsg;
+    seat.appendChild(tooltip);
+
+    if (!isOccupied && !isDisabled && !isMaintenance) {
+      seat.onclick = () => selectSeat(i);
+    }
 
     grid.appendChild(seat);
   }
