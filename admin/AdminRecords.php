@@ -330,6 +330,10 @@ $nav_admin_active = 'records';
 
     <div class="filter-bar">
       <div class="filter-group">
+        <label>Search</label>
+        <input type="text" id="filterSearch" oninput="applyFilters()" placeholder="Name, ID, purpose…"/>
+      </div>
+      <div class="filter-group">
         <label>From Date</label>
         <input type="date" id="filterFrom" />
       </div>
@@ -358,6 +362,7 @@ $nav_admin_active = 'records';
         </select>
       </div>
       <button class="filter-apply-btn" onclick="applyFilters()">Apply Filters</button>
+      <button class="filter-apply-btn" style="background:transparent;color:var(--ink-soft);border:1.5px solid #ccdeed;" onclick="document.getElementById('filterSearch').value='';document.getElementById('filterFrom').value='';document.getElementById('filterTo').value='';document.getElementById('filterLab').value='';document.getElementById('filterStatus').value='';applyFilters()">Reset</button>
     </div>
 
     <div class="records-table-wrap">
@@ -481,6 +486,7 @@ function initPagination(tableId, paginationId, perPage) {
 }
 
 function applyFilters() {
+  const q      = (document.getElementById('filterSearch').value || '').toLowerCase();
   const from   = document.getElementById('filterFrom').value;
   const to     = document.getElementById('filterTo').value;
   const lab    = document.getElementById('filterLab').value.toLowerCase();
@@ -492,14 +498,15 @@ function applyFilters() {
     const rowLab    = (cells[4]?.textContent || '').toLowerCase();
     const rowStatus = (cells[8]?.textContent || '').toLowerCase().trim();
     const rowDateRaw = cells[6]?.textContent || '';
-    // parse "May 24, 2026 12:08 AM" → date string for comparison
     const rowDate = rowDateRaw ? new Date(rowDateRaw).toISOString().slice(0,10) : '';
+    const rowText = r.textContent.toLowerCase();
 
     let show = true;
-    if (from && rowDate && rowDate < from) show = false;
-    if (to   && rowDate && rowDate > to)   show = false;
-    if (lab    && !rowLab.includes(lab))       show = false;
-    if (status && !rowStatus.includes(status)) show = false;
+    if (q      && !rowText.includes(q))            show = false;
+    if (from && rowDate && rowDate < from)          show = false;
+    if (to   && rowDate && rowDate > to)            show = false;
+    if (lab    && !rowLab.includes(lab))            show = false;
+    if (status && !rowStatus.includes(status))      show = false;
 
     r.dataset.hidden = show ? 'false' : 'true';
     if (!show) r.style.display = 'none';

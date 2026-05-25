@@ -39,17 +39,18 @@ $nav_admin_active = 'history';
     .records-table tr:last-child td { border-bottom:none; }
     .records-table tr:hover td { background:rgba(10,77,140,0.02); }
     .filter-bar {
-      display:flex; align-items:flex-end; flex-wrap:wrap; gap:12px;
-      padding:16px 20px; border-bottom:1px solid rgba(204,222,237,0.4);
+      display:flex; flex-direction:column; gap:10px;
+      padding:14px 20px; border-bottom:1px solid rgba(204,222,237,0.4);
       background:rgba(10,77,140,0.02);
     }
-    .filter-group { display:flex; flex-direction:column; gap:4px; }
+    .filter-bar-row { display:flex; align-items:flex-end; gap:10px; width:100%; }
+    .filter-group { display:flex; flex-direction:column; gap:4px; flex:1; min-width:0; }
     .filter-group label { font-size:0.68rem; font-weight:700; letter-spacing:0.6px; text-transform:uppercase; color:var(--ink-soft); }
     .filter-group input, .filter-group select {
       padding:8px 12px; border:1.5px solid #ccdeed; border-radius:8px;
       font-family:'DM Sans',sans-serif; font-size:0.82rem;
       outline:none; transition:border-color 0.2s; background:var(--surface,#fff); color:var(--ink);
-      min-width:140px;
+      width:100%;
     }
     .filter-group input:focus, .filter-group select:focus { border-color:#1877c9; }
     .filter-apply-btn {
@@ -332,25 +333,36 @@ $nav_admin_active = 'history';
     </div>
 
     <div class="filter-bar">
-      <div class="filter-group">
-        <label>From Date</label>
-        <input type="date" id="filterFrom" />
+      <div class="filter-bar-row">
+        <div class="filter-group">
+          <label>Search</label>
+          <input type="text" id="filterSearch" oninput="applyFilters()" placeholder="Name, ID, purpose…"/>
+        </div>
+        <div class="filter-group">
+          <label>From Date</label>
+          <input type="date" id="filterFrom" />
+        </div>
+        <div class="filter-group">
+          <label>To Date</label>
+          <input type="date" id="filterTo" />
+        </div>
+        <div class="filter-group">
+          <label>Lab</label>
+          <select id="filterLab">
+            <option value="">All Labs</option>
+            <?php
+              $labs = $db->query("SELECT DISTINCT lab_room FROM sitin_logs ORDER BY lab_room")->fetchAll(PDO::FETCH_COLUMN);
+              foreach($labs as $lab) echo "<option value=\"".htmlspecialchars($lab)."\">".htmlspecialchars($lab)."</option>";
+            ?>
+          </select>
+        </div>
+        <button class="filter-apply-btn" onclick="applyFilters()">Apply Filters</button>
+        <button class="filter-apply-btn" style="background:transparent;color:var(--ink-soft);border:1.5px solid #ccdeed;" onclick="document.getElementById('filterSearch').value='';document.getElementById('filterFrom').value='';document.getElementById('filterTo').value='';document.getElementById('filterLab').value='';applyFilters()">Reset</button>
       </div>
-      <div class="filter-group">
-        <label>To Date</label>
-        <input type="date" id="filterTo" />
+      <div class="filter-bar-row" style="justify-content:flex-end;">
+        <button class="filter-apply-btn" style="background:#16a34a;" onclick="exportCSV()">⬇ Export CSV</button>
+        <button class="filter-apply-btn" style="background:#dc2626;" onclick="exportPDF()">⬇ Export PDF</button>
       </div>
-      <div class="filter-group">
-        <label>Lab</label>
-        <select id="filterLab">
-          <option value="">All Labs</option>
-          <?php
-            $labs = $db->query("SELECT DISTINCT lab_room FROM sitin_logs ORDER BY lab_room")->fetchAll(PDO::FETCH_COLUMN);
-            foreach($labs as $lab) echo "<option value=\"".htmlspecialchars($lab)."\">".htmlspecialchars($lab)."</option>";
-          ?>
-        </select>
-      </div>
-      <button class="filter-apply-btn" onclick="applyFilters()">Apply Filters</button>
     </div>
 
     <div class="records-table-wrap">
@@ -433,6 +445,100 @@ $nav_admin_active = 'history';
 
 <?php include __DIR__ . '/footer.php'; ?>
 <script>
+// Logo data URIs for PDF export
+const UC_LOGO  = 'data:image/png;base64,<?php echo base64_encode(file_get_contents(__DIR__."/../images/uclogo-removebg-preview-removebg-preview.png")); ?>';
+const CCS_LOGO = 'data:image/png;base64,<?php echo base64_encode(file_get_contents(__DIR__."/../images/csmainlogo-removebg-preview-removebg-preview.png")); ?>';
+
+function getVisibleRows() {
+  return Array.from(document.querySelectorAll('#recordsTable tbody tr')).filter(r => r.dataset.hidden !== 'true' && r.querySelectorAll('td').length > 1);
+}
+
+function exportCSV() {
+  const headers = ['ID Number','Name','Course','Purpose','Lab','PC','Date In','Date Out'];
+  const rows = getVisibleRows().map(r => {
+    const c = r.querySelectorAll('td');
+    return [
+      c[1]?.textContent.trim(),
+      c[2]?.textContent.trim(),
+      c[3]?.textContent.trim(),
+      c[4]?.textContent.trim(),
+      c[5]?.textContent.trim(),
+      c[6]?.textContent.trim(),
+      c[7]?.textContent.trim(),
+      c[8]?.textContent.trim(),
+    ].map(v => '"' + (v||'').replace(/"/g,'""') + '"');
+  });
+  const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'sitin-history-' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
+
+function exportPDF() {
+  const rows = getVisibleRows();
+  const now = new Date();
+  const generated = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');
+
+  const tableRows = rows.map(r => {
+    const c = r.querySelectorAll('td');
+    const idno    = c[1]?.textContent.trim()||'—';
+    const name    = c[2]?.textContent.trim()||'—';
+    const purpose = c[4]?.textContent.trim()||'—';
+    const lab     = c[5]?.textContent.trim()||'—';
+    const pc      = c[6]?.textContent.trim()||'—';
+    const dateInFull  = c[7]?.textContent.trim()||'';
+    const dateOutFull = c[8]?.textContent.trim()||'';
+    // Split "May 25, 2026 12:57 AM" → date + time parts
+    const splitDT = s => { const m = s.match(/^(.+?)\s+(\d+:\d+\s*[AP]M)$/i); return m ? [m[2], m[1].replace(/\s+/g,' ')] : [s, '']; };
+    const [login,  dateStr] = splitDT(dateInFull);
+    const [logout] = splitDT(dateOutFull);
+    return `<tr><td>${idno}</td><td>${name}</td><td>${purpose}</td><td>${lab}</td><td>${login}</td><td>${logout||'—'}</td><td>${dateStr}</td><td>${pc}</td></tr>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"/>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: Arial, sans-serif; font-size: 11px; color: #111; background:#fff; padding: 24px 28px; }
+    .header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+    .header img { height:56px; width:auto; }
+    .header-center { text-align:center; flex:1; }
+    .header-center .school { font-size:18px; font-weight:900; color:#0a4d8c; letter-spacing:1px; }
+    .header-center .subtitle { font-size:13px; font-weight:700; color:#1a2535; margin-top:2px; }
+    .header-center .generated { font-size:10px; color:#888; margin-top:3px; }
+    .divider { border:none; border-top:3px solid #0a4d8c; margin:10px 0 14px; }
+    table { width:100%; border-collapse:collapse; font-size:10.5px; }
+    thead tr { background:#0a4d8c; color:#fff; }
+    thead th { padding:7px 8px; text-align:left; font-weight:700; font-size:9.5px; text-transform:uppercase; letter-spacing:0.4px; white-space:nowrap; }
+    tbody tr:nth-child(even) { background:#f0f5fb; }
+    tbody tr:nth-child(odd)  { background:#fff; }
+    tbody td { padding:6px 8px; border-bottom:1px solid #dde8f0; vertical-align:top; }
+  </style></head><body>
+  <div class="header">
+    <img src="${UC_LOGO}" alt="UC"/>
+    <div class="header-center">
+      <div class="school">UCMAIN</div>
+      <div class="subtitle">Sit-in Records</div>
+      <div class="generated">Generated: ${generated}</div>
+    </div>
+    <img src="${CCS_LOGO}" alt="CCS"/>
+  </div>
+  <hr class="divider"/>
+  <table>
+    <thead><tr>
+      <th>ID Number</th><th>Name</th><th>Purpose</th><th>Laboratory</th><th>Login</th><th>Logout</th><th>Date</th><th>PC</th>
+    </tr></thead>
+    <tbody>${tableRows}</tbody>
+  </table>
+  </body></html>`;
+
+  const win = window.open('','_blank','width=900,height=700');
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => { win.print(); }, 600);
+}
 function initPagination(tableId, paginationId, perPage) {
   const tbody = document.querySelector('#' + tableId + ' tbody');
   const pagination = document.getElementById(paginationId);
@@ -477,6 +583,7 @@ function initPagination(tableId, paginationId, perPage) {
 }
 
 function applyFilters() {
+  const q    = (document.getElementById('filterSearch').value || '').toLowerCase();
   const from = document.getElementById('filterFrom').value;
   const to   = document.getElementById('filterTo').value;
   const lab  = document.getElementById('filterLab').value.toLowerCase();
@@ -487,11 +594,13 @@ function applyFilters() {
     const rowLab     = (cells[5]?.textContent || '').toLowerCase();
     const rowDateRaw = cells[7]?.textContent || '';
     const rowDate    = rowDateRaw ? new Date(rowDateRaw).toISOString().slice(0,10) : '';
+    const rowText    = r.textContent.toLowerCase();
 
     let show = true;
-    if (from && rowDate && rowDate < from) show = false;
-    if (to   && rowDate && rowDate > to)   show = false;
-    if (lab  && !rowLab.includes(lab))     show = false;
+    if (q    && !rowText.includes(q))        show = false;
+    if (from && rowDate && rowDate < from)   show = false;
+    if (to   && rowDate && rowDate > to)     show = false;
+    if (lab  && !rowLab.includes(lab))       show = false;
 
     r.dataset.hidden = show ? 'false' : 'true';
     if (!show) r.style.display = 'none';

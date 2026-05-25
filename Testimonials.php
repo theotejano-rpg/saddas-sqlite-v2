@@ -52,7 +52,7 @@ $my_stmt->execute([$student_id]);
 $my_testimonials = $my_stmt->fetchAll();
 
 $approved = $db->query("
-    SELECT t.*, s.first_name, s.last_name
+    SELECT t.*, s.first_name, s.last_name, s.profile_pic
     FROM testimonials t
     JOIN students s ON s.id = t.student_id
     WHERE t.status = 'approved'
@@ -156,6 +156,20 @@ $approved = $db->query("
     }
     .testi-card-msg::before { content: '\201C'; font-size: 1.4rem; color: #0a4d8c; line-height: 0; vertical-align: -6px; margin-right: 3px; }
     .testi-card-msg::after  { content: '\201D'; font-size: 1.4rem; color: #0a4d8c; line-height: 0; vertical-align: -6px; margin-left: 3px; }
+    .testi-card-footer { display: flex; align-items: center; gap: 10px; }
+    .testi-card-avatar {
+      width: 38px; height: 38px; border-radius: 50%;
+      object-fit: cover; flex-shrink: 0;
+      border: 2px solid rgba(10,77,140,0.18);
+    }
+    .testi-card-avatar-placeholder {
+      width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg,#0a4d8c,#1877c9);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem; font-weight: 800; color: white;
+      border: 2px solid rgba(10,77,140,0.18);
+    }
+    .testi-card-info { display: flex; flex-direction: column; }
     .testi-card-author { font-size: 0.78rem; font-weight: 700; color: #0a4d8c; }
     .testi-card-date   { font-size: 0.7rem; color: #9aa5b4; margin-top: 2px; }
 
@@ -222,10 +236,23 @@ $approved = $db->query("
   <?php else: ?>
     <div class="testi-cards-grid">
       <?php foreach ($approved as $t): ?>
+      <?php
+        $initials = strtoupper(substr($t['first_name'],0,1) . substr($t['last_name'],0,1));
+        $pic = !empty($t['profile_pic']) ? 'uploads/profiles/' . htmlspecialchars($t['profile_pic']) : null;
+      ?>
       <div class="testi-card">
         <div class="testi-card-msg"><?= htmlspecialchars($t['message']) ?></div>
-        <div class="testi-card-author"><?= htmlspecialchars($t['first_name'] . ' ' . $t['last_name']) ?></div>
-        <div class="testi-card-date"><?= date('M d, Y', strtotime($t['created_at'])) ?></div>
+        <div class="testi-card-footer">
+          <?php if ($pic): ?>
+            <img src="<?= $pic ?>" alt="" class="testi-card-avatar"/>
+          <?php else: ?>
+            <div class="testi-card-avatar-placeholder"><?= $initials ?></div>
+          <?php endif; ?>
+          <div class="testi-card-info">
+            <span class="testi-card-author"><?= htmlspecialchars($t['first_name'] . ' ' . $t['last_name']) ?></span>
+            <span class="testi-card-date"><?= date('M d, Y', strtotime($t['created_at'])) ?></span>
+          </div>
+        </div>
       </div>
       <?php endforeach; ?>
     </div>

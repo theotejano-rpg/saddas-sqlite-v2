@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
 }
 
 $pending = $db->query("
-    SELECT t.*, s.first_name, s.last_name, s.student_id AS idno
+    SELECT t.*, s.first_name, s.last_name, s.student_id AS idno, s.profile_pic
     FROM testimonials t
     JOIN students s ON s.id = t.student_id
     WHERE t.status = 'pending'
@@ -41,7 +41,7 @@ $pending = $db->query("
 ")->fetchAll();
 
 $all = $db->query("
-    SELECT t.*, s.first_name, s.last_name, s.student_id AS idno
+    SELECT t.*, s.first_name, s.last_name, s.student_id AS idno, s.profile_pic
     FROM testimonials t
     JOIN students s ON s.id = t.student_id
     ORDER BY t.created_at DESC
@@ -116,6 +116,76 @@ $all = $db->query("
     }
     .divider-line { border: none; border-top: 1px solid rgba(204,222,237,0.6); margin: 32px 0; }
     .msg-cell { max-width: 340px; word-break: break-word; }
+
+    /* Student identity cell with avatar */
+    .student-id-cell { display: flex; align-items: center; gap: 10px; }
+    .student-avatar {
+      width: 38px; height: 38px; border-radius: 50%;
+      object-fit: cover; flex-shrink: 0;
+      border: 2px solid rgba(10,77,140,0.15);
+      background: rgba(10,77,140,0.06);
+    }
+    .student-avatar-placeholder {
+      width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg,#0a4d8c,#1877c9);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem; font-weight: 800; color: white;
+      border: 2px solid rgba(10,77,140,0.15);
+    }
+    .student-name-info { display: flex; flex-direction: column; }
+    .student-name-text { font-weight: 700; font-size: 0.85rem; color: #1a2535; line-height: 1.2; }
+    .student-id-text  { font-size: 0.72rem; color: #9aa5b4; margin-top: 1px; }
+
+    /* Testimony cards section */
+    .at-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 36px;
+    }
+    .at-testi-card {
+      background: white;
+      border: 1px solid rgba(204,222,237,0.7);
+      border-radius: 16px;
+      padding: 20px 22px 18px;
+      box-shadow: 0 3px 14px rgba(10,77,140,0.06);
+      display: flex; flex-direction: column; gap: 12px;
+      position: relative; overflow: hidden;
+    }
+    .at-testi-card::before {
+      content: '\201C';
+      position: absolute; top: 10px; right: 16px;
+      font-size: 3.5rem; color: rgba(10,77,140,0.06);
+      font-family: Georgia, serif; line-height: 1;
+      pointer-events: none;
+    }
+    .at-testi-card-header { display: flex; align-items: center; gap: 12px; }
+    .at-testi-avatar {
+      width: 46px; height: 46px; border-radius: 50%;
+      object-fit: cover; flex-shrink: 0;
+      border: 2px solid rgba(10,77,140,0.18);
+    }
+    .at-testi-avatar-placeholder {
+      width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg,#0a4d8c,#1877c9);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; font-weight: 800; color: white;
+      border: 2px solid rgba(10,77,140,0.18);
+    }
+    .at-testi-meta { display: flex; flex-direction: column; }
+    .at-testi-name { font-weight: 800; font-size: 0.88rem; color: #0a4d8c; line-height: 1.2; }
+    .at-testi-idno { font-size: 0.72rem; color: #9aa5b4; margin-top: 2px; }
+    .at-testi-msg {
+      font-size: 0.86rem; color: #1a2535; line-height: 1.65;
+      font-style: italic; flex: 1;
+    }
+    .at-testi-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 8px;
+      border-top: 1px solid rgba(204,222,237,0.5); padding-top: 10px;
+    }
+    .at-testi-date { font-size: 0.72rem; color: #9aa5b4; }
+    .at-testi-actions { display: flex; gap: 6px; }
   </style>
   <style>
     /* ── Shared dark theme (matches AdminSoftware design) ── */
@@ -298,6 +368,20 @@ $all = $db->query("
     .dark-theme .at-section-title { color: var(--ds-text) !important; }
     .dark-theme .at-section-sub { color: var(--ds-muted) !important; }
 
+    /* Testimony cards dark */
+    .dark-theme .at-testi-card {
+      background: linear-gradient(180deg, var(--ds-panel), var(--ds-surface)) !important;
+      border-color: var(--ds-border) !important;
+      box-shadow: 0 8px 30px rgba(2,6,23,0.6) !important;
+    }
+    .dark-theme .at-testi-name { color: #93c5fd !important; }
+    .dark-theme .at-testi-idno { color: var(--ds-muted) !important; }
+    .dark-theme .at-testi-msg  { color: var(--ds-text) !important; }
+    .dark-theme .at-testi-date { color: var(--ds-muted) !important; }
+    .dark-theme .at-testi-footer { border-color: rgba(255,255,255,0.05) !important; }
+    .dark-theme .student-name-text { color: var(--ds-text) !important; }
+    .dark-theme .student-id-text  { color: var(--ds-muted) !important; }
+
     /* Divider */
     .dark-theme .divider-line { border-color: rgba(255,255,255,0.04) !important; }
 
@@ -322,34 +406,39 @@ $all = $db->query("
     <?php if (empty($pending)): ?>
       <div class="at-empty">No pending testimonials right now.</div>
     <?php else: ?>
-      <table class="at-table">
-        <thead>
-          <tr>
-            <th>Student</th>
-            <th>ID No.</th>
-            <th>Message</th>
-            <th>Date</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php foreach ($pending as $t): ?>
-          <tr>
-            <td><?= htmlspecialchars($t['first_name'] . ' ' . $t['last_name']) ?></td>
-            <td><?= htmlspecialchars($t['idno']) ?></td>
-            <td class="msg-cell"><?= htmlspecialchars($t['message']) ?></td>
-            <td><?= date('M d, Y', strtotime($t['created_at'])) ?></td>
-            <td>
+      <!-- Testimony Cards for pending -->
+      <div class="at-cards-grid">
+        <?php foreach ($pending as $t): ?>
+        <?php
+          $initials = strtoupper(substr($t['first_name'],0,1) . substr($t['last_name'],0,1));
+          $pic = !empty($t['profile_pic']) ? '../uploads/profiles/' . htmlspecialchars($t['profile_pic']) : null;
+        ?>
+        <div class="at-testi-card">
+          <div class="at-testi-card-header">
+            <?php if ($pic): ?>
+              <img src="<?= $pic ?>" alt="" class="at-testi-avatar"/>
+            <?php else: ?>
+              <div class="at-testi-avatar-placeholder"><?= $initials ?></div>
+            <?php endif; ?>
+            <div class="at-testi-meta">
+              <span class="at-testi-name"><?= htmlspecialchars($t['first_name'] . ' ' . $t['last_name']) ?></span>
+              <span class="at-testi-idno"><?= htmlspecialchars($t['idno']) ?></span>
+            </div>
+          </div>
+          <div class="at-testi-msg"><?= htmlspecialchars($t['message']) ?></div>
+          <div class="at-testi-footer">
+            <span class="at-testi-date"><?= date('M d, Y', strtotime($t['created_at'])) ?></span>
+            <div class="at-testi-actions">
               <form method="POST" style="display:inline;">
                 <input type="hidden" name="id" value="<?= $t['id'] ?>"/>
                 <button type="submit" name="action" value="approve" class="at-action-btn approve">✓ Approve</button>
                 <button type="submit" name="action" value="reject"  class="at-action-btn reject">✗ Reject</button>
               </form>
-            </td>
-          </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
+            </div>
+          </div>
+        </div>
+        <?php endforeach; ?>
+      </div>
     <?php endif; ?>
 
     <hr class="divider-line"/>
@@ -360,26 +449,32 @@ $all = $db->query("
     <?php if (empty($all)): ?>
       <div class="at-empty">No testimonials submitted yet.</div>
     <?php else: ?>
-      <table class="at-table">
-        <thead>
-          <tr>
-            <th>Student</th>
-            <th>ID No.</th>
-            <th>Message</th>
-            <th>Status</th>
-            <th>Date</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php foreach ($all as $t): ?>
-          <tr>
-            <td><?= htmlspecialchars($t['first_name'] . ' ' . $t['last_name']) ?></td>
-            <td><?= htmlspecialchars($t['idno']) ?></td>
-            <td class="msg-cell"><?= htmlspecialchars($t['message']) ?></td>
-            <td><span class="status-badge <?= $t['status'] ?>"><?= ucfirst($t['status']) ?></span></td>
-            <td><?= date('M d, Y', strtotime($t['created_at'])) ?></td>
-            <td>
+      <!-- Testimony Cards for all testimonials -->
+      <div class="at-cards-grid">
+        <?php foreach ($all as $t): ?>
+        <?php
+          $initials = strtoupper(substr($t['first_name'],0,1) . substr($t['last_name'],0,1));
+          $pic = !empty($t['profile_pic']) ? '../uploads/profiles/' . htmlspecialchars($t['profile_pic']) : null;
+        ?>
+        <div class="at-testi-card">
+          <div class="at-testi-card-header">
+            <?php if ($pic): ?>
+              <img src="<?= $pic ?>" alt="" class="at-testi-avatar"/>
+            <?php else: ?>
+              <div class="at-testi-avatar-placeholder"><?= $initials ?></div>
+            <?php endif; ?>
+            <div class="at-testi-meta">
+              <span class="at-testi-name"><?= htmlspecialchars($t['first_name'] . ' ' . $t['last_name']) ?></span>
+              <span class="at-testi-idno"><?= htmlspecialchars($t['idno']) ?></span>
+            </div>
+          </div>
+          <div class="at-testi-msg"><?= htmlspecialchars($t['message']) ?></div>
+          <div class="at-testi-footer">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="status-badge <?= $t['status'] ?>"><?= ucfirst($t['status']) ?></span>
+              <span class="at-testi-date"><?= date('M d, Y', strtotime($t['created_at'])) ?></span>
+            </div>
+            <div class="at-testi-actions">
               <?php if ($t['status'] !== 'approved'): ?>
               <form method="POST" style="display:inline;">
                 <input type="hidden" name="id" value="<?= $t['id'] ?>"/>
@@ -392,11 +487,11 @@ $all = $db->query("
                 <button type="submit" name="action" value="reject" class="at-action-btn reject">✗ Reject</button>
               </form>
               <?php endif; ?>
-            </td>
-          </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
+            </div>
+          </div>
+        </div>
+        <?php endforeach; ?>
+      </div>
     <?php endif; ?>
 
   </div>
