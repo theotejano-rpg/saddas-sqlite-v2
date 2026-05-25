@@ -275,7 +275,14 @@ body.student-page a { text-decoration: none !important; }
       <span class="tooltip">Edit Profile</span>
     </a>
 
-    <a href="History.php" class="sn-icon-btn <?= $nav_student_active === 'history' ? 'active' : '' ?>">
+    <a href="Summary.php" class="sn-icon-btn <?= $nav_student_active === 'summary' ? 'active' : '' ?>">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+      </svg>
+      <span class="tooltip">Summary</span>
+    </a>
+
+        <a href="History.php" class="sn-icon-btn <?= $nav_student_active === 'history' ? 'active' : '' ?>">
       <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="12 8 12 12 14 14"/>
         <path d="M3.05 11a9 9 0 1 1 .5 4"/>

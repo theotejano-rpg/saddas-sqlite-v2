@@ -123,6 +123,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       color: #ffffff !important;
     }
     html.dark-theme .field input::placeholder { color: rgba(255,255,255,0.25) !important; }
+    html.dark-theme .field select option {
+      background: #0f1724 !important;
+      color: #ffffff !important;
+    }
+    html.dark-theme .field select option:checked {
+      background: #1e3a5f !important;
+      color: #93c5fd !important;
+    }
     html.dark-theme .field input:focus, html.dark-theme .field select:focus { border-color: rgba(74,163,255,0.4) !important; box-shadow: 0 0 0 3px rgba(74,163,255,0.08) !important; }
     html.dark-theme .pw-toggle { background: transparent !important; color: #9aa5b4 !important; }
     html.dark-theme .auth-btn { background: #1877c9 !important; color: #ffffff !important; }

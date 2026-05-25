@@ -11,8 +11,8 @@ $nav_active = $nav_active ?? 'home';
   </div>
   <div class="nav-links">
     <a href="Landing.php" class="nav-link <?= $nav_active === 'home' ? 'active' : '' ?>">Home</a>
-    <a href="Landing.php#community" class="nav-link">Community</a>
-    <a href="Landing.php#about" class="nav-link">About</a>
+    <a href="Community.php" class="nav-link <?= $nav_active === 'community' ? 'active' : '' ?>">Community</a>
+    <a href="About.php" class="nav-link <?= $nav_active === 'about' ? 'active' : '' ?>">About</a>
   </div>
   <div class="nav-right">
     <a href="Login.php"    class="nav-btn ghost <?= $nav_active === 'login'    ? 'active' : '' ?>">Log In</a>

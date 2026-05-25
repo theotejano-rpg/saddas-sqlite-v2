@@ -25,7 +25,7 @@ if (isset($_GET['reject']) && is_numeric($_GET['reject'])) {
 $reservations = $db->query("
     SELECT sl.*, s.first_name, s.last_name, s.student_id as sid
     FROM sitin_logs sl JOIN students s ON sl.student_id = s.id
-    ORDER BY sl.date_in DESC
+    ORDER BY sl.id DESC
 ")->fetchAll();
 
 $nav_admin_active = 'reservation';

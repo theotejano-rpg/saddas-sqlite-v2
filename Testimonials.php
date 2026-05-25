@@ -238,7 +238,7 @@ $approved = $db->query("
       <?php foreach ($approved as $t): ?>
       <?php
         $initials = strtoupper(substr($t['first_name'],0,1) . substr($t['last_name'],0,1));
-        $pic = !empty($t['profile_pic']) ? 'uploads/profiles/' . htmlspecialchars($t['profile_pic']) : null;
+        $pic = !empty($t['profile_pic']) ? htmlspecialchars($t['profile_pic']) : null;
       ?>
       <div class="testi-card">
         <div class="testi-card-msg"><?= htmlspecialchars($t['message']) ?></div>

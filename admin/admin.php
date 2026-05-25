@@ -212,21 +212,55 @@ $nav_admin_active = 'home';
 const labels = <?= json_encode(array_column($purpose_data,'purpose')) ?>;
 const values = <?= json_encode(array_column($purpose_data,'cnt')) ?>;
 const colors = ['#1877c9','#e74c3c','#6b21c8','#e8a020','#27ae60','#5aadea','#9b59e8','#f39c12'];
-const isDark = document.documentElement.classList.contains('dark-theme');
-const legendColor = isDark ? '#ffffff' : '#12243a';
-new Chart(document.getElementById('purposeChart'), {
+
+function getLegendColor() {
+  return document.documentElement.classList.contains('dark-theme') ? '#ffffff' : '#1a2535';
+}
+function getBorderColor() {
+  return document.documentElement.classList.contains('dark-theme') ? 'rgba(255,255,255,0.08)' : '#fff';
+}
+function getBorderWidth() {
+  return document.documentElement.classList.contains('dark-theme') ? 1 : 2;
+}
+
+const purposeChart = new Chart(document.getElementById('purposeChart'), {
   type: 'pie',
-  data: { labels: labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: isDark ? 1 : 2, borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#fff' }] },
+  data: {
+    labels: labels,
+    datasets: [{
+      data: values,
+      backgroundColor: colors,
+      borderWidth: getBorderWidth(),
+      borderColor: getBorderColor()
+    }]
+  },
   options: {
     responsive: true,
     plugins: {
       legend: {
         position: 'bottom',
-        labels: { font: { family:'DM Sans', size:11 }, padding:12, color: legendColor }
+        labels: {
+          font: { family: 'DM Sans', size: 11 },
+          padding: 12,
+          color: getLegendColor(),
+          boxWidth: 14,
+          boxHeight: 14
+        }
       }
     }
   }
 });
+
+// Update chart colors when theme toggles
+(function() {
+  const observer = new MutationObserver(function() {
+    purposeChart.options.plugins.legend.labels.color = getLegendColor();
+    purposeChart.data.datasets[0].borderColor = getBorderColor();
+    purposeChart.data.datasets[0].borderWidth = getBorderWidth();
+    purposeChart.update();
+  });
+  observer.observe(document.documentElement, { attributeFilter: ['class'] });
+})();
 <?php endif; ?>
 </script>
 </body>
